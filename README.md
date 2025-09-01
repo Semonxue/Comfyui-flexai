@@ -23,8 +23,11 @@ A modern, unified ComfyUI plugin for OpenAI-compatible APIs with dual-mode image
 - Supports 1-4 simultaneous image inputs for editing
 - Automatic mode detection based on image inputs
 - Modern OpenAI Python SDK (>=1.0) integration
+- **Dual Response Format Support**: Automatically handles both base64 and URL responses
+- **Auto Image Download**: When API returns URLs, automatically downloads and converts images
 - Comprehensive error handling with visual feedback
 - Safety system rejection guidance
+- **Enhanced Debug Mode**: Detailed JSON request/response logging
 
 ### 💬 OpenAI Text Node (`flexai:openai_text`)
 
@@ -39,6 +42,7 @@ A modern, unified ComfyUI plugin for OpenAI-compatible APIs with dual-mode image
 - Usage statistics tracking
 - Reproducible generation with seed control
 - Smart image preprocessing (≤1024px longest side)
+- **Enhanced Debug Mode**: Complete JSON request/response logging for both streaming and non-streaming modes
 
 ## Quick Start
 
@@ -154,6 +158,26 @@ The system will auto-detect and populate the provider dropdown.
 | `debug` | Boolean | Enable debug logging |
 
 ## Advanced Usage
+
+### Response Format Compatibility
+
+**Automatic Format Detection:**
+- **Base64 Response**: Direct processing of b64_json, b64, base64, or data fields
+- **URL Response**: Automatic download and conversion when API returns image URLs
+- **Smart Fallback**: Seamless handling across different API providers
+
+**Enhanced Error Handling:**
+- Detailed validation of response data types
+- Network timeout and retry mechanisms
+- Comprehensive diagnostic information in debug mode
+
+### Debug Mode
+
+Enable enhanced debugging (`debug=True`) for detailed insights:
+- **API Requests**: Complete JSON parameters sent to API
+- **API Responses**: Full JSON responses from API (streaming and non-streaming)
+- **Image Processing**: URL download progress and base64 conversion details
+- **Error Diagnostics**: Detailed error messages with suggested solutions
 
 ### Image Processing Modes
 

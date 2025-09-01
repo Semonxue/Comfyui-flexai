@@ -7,6 +7,7 @@
  - 生成模式: 纯文本提示词生成图片
  - 错误处理: 安全系统拒绝时提供友好提示，生成错误图片而非异常
  - 使用现代 OpenAI Python SDK (>=1.0)
+ - 支持base64和URL两种响应格式
 """
 from __future__ import annotations
 import os
@@ -14,6 +15,7 @@ from io import BytesIO
 from typing import Optional
 from PIL import Image
 import base64
+import requests
 from dotenv import load_dotenv
 import provider_config
 import sys
@@ -42,6 +44,40 @@ build_multimodal_messages = _openai_standard_module.build_multimodal_messages
 
 plugin_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 load_dotenv(os.path.join(plugin_root, '.env'), override=True)
+
+
+def download_image_from_url(url: str, timeout: int = 30, debug: bool = False) -> Image.Image:
+    """从URL下载图片并返回PIL Image对象"""
+    if debug:
+        print(f"[DEBUG] 开始下载图片: {url}")
+    
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        response = requests.get(url, headers=headers, timeout=timeout)
+        response.raise_for_status()  # 如果HTTP状态不是200会抛出异常
+        
+        if debug:
+            print(f"[DEBUG] 下载成功，数据长度: {len(response.content)}")
+            print(f"[DEBUG] Content-Type: {response.headers.get('content-type', 'unknown')}")
+        
+        # 直接从字节数据创建PIL Image
+        img = Image.open(BytesIO(response.content))
+        
+        if debug:
+            print(f"[DEBUG] 图片解析成功: {img.size} {img.mode}")
+        
+        return img
+        
+    except requests.exceptions.Timeout:
+        raise ValueError(f"下载图片超时 (>{timeout}秒): {url}")
+    except requests.exceptions.ConnectionError:
+        raise ValueError(f"无法连接到图片URL: {url}")
+    except requests.exceptions.HTTPError as e:
+        raise ValueError(f"HTTP错误 {e.response.status_code}: {url}")
+    except Exception as e:
+        raise ValueError(f"下载图片失败: {e}")
 
 
 class OpenAIImageNode:
@@ -119,9 +155,25 @@ class OpenAIImageNode:
         if debug:
             print(f"[DEBUG] 调用 images.generate，prompt: {prompt}")
         b64 = generate_image_b64(client, model=model, prompt=prompt, size=size, seed=None, debug=debug)
-        img = Image.open(BytesIO(base64.b64decode(b64)))
-        tensor = pil_to_tensor(img)
-        return tensor
+        
+        # 检查base64数据是否有效
+        if not b64:
+            raise ValueError("generate_image_b64 返回空的base64数据")
+        if not isinstance(b64, str):
+            raise ValueError(f"generate_image_b64 返回的不是字符串类型，而是: {type(b64)}")
+        
+        if debug:
+            print(f"[DEBUG] 收到base64数据长度: {len(b64)}")
+        
+        try:
+            img = Image.open(BytesIO(base64.b64decode(b64)))
+            tensor = pil_to_tensor(img)
+            return tensor
+        except Exception as e:
+            if debug:
+                print(f"[DEBUG] base64解码失败: {e}")
+                print(f"[DEBUG] base64数据前100字符: {b64[:100] if len(b64) > 100 else b64}")
+            raise ValueError(f"base64图像数据解码失败: {e}")
     
     def _edit_images(self, client, model, prompt, input_images, size, debug):
         """编辑多张图片（1-4张）"""
@@ -159,6 +211,24 @@ class OpenAIImageNode:
             # 调用 OpenAI images.edit API
             if debug:
                 print(f"[DEBUG] 调用 images.edit，图片数量: {len(image_files)}, prompt: {prompt}")
+                # 打印API调用参数（不包含二进制图片数据）
+                import json
+                print("=" * 50)
+                print("[DEBUG] 提交到OpenAI Images Edit API的参数:")
+                debug_params = {
+                    "model": model,
+                    "prompt": prompt,
+                    "size": size,
+                    "response_format": "b64_json",
+                    "n": 1,
+                    "image_count": len(image_files)  # 只记录图片数量，不打印二进制数据
+                }
+                try:
+                    print(json.dumps(debug_params, ensure_ascii=False, indent=2))
+                except Exception as e:
+                    print(f"JSON序列化失败: {e}")
+                    print(f"原始参数: {debug_params}")
+                print("=" * 50)
             
             response = client.images.edit(
                 model=model,
@@ -171,15 +241,76 @@ class OpenAIImageNode:
             
             if debug:
                 print(f"[DEBUG] images.edit 响应成功，返回 {len(response.data)} 张图片")
+                # 打印API返回的JSON数据
+                import json
+                print("=" * 50)
+                print("[DEBUG] 从OpenAI Images Edit API返回的原生JSON数据:")
+                try:
+                    resp_dict = response.model_dump() if hasattr(response, 'model_dump') else str(response)
+                    if isinstance(resp_dict, dict):
+                        # 如果包含base64数据，只显示长度而不是全部内容
+                        debug_resp = resp_dict.copy()
+                        if 'data' in debug_resp and isinstance(debug_resp['data'], list):
+                            for i, item in enumerate(debug_resp['data']):
+                                if isinstance(item, dict) and 'b64_json' in item:
+                                    b64_length = len(item['b64_json']) if isinstance(item['b64_json'], str) else 0
+                                    debug_resp['data'][i] = {
+                                        **{k: v for k, v in item.items() if k != 'b64_json'},
+                                        'b64_json': f'<base64_data_length: {b64_length}>'
+                                    }
+                        print(json.dumps(debug_resp, ensure_ascii=False, indent=2))
+                    else:
+                        print(resp_dict)
+                except Exception as e:
+                    print(f"JSON序列化失败: {e}")
+                    print(f"原始响应: {response}")
+                print("=" * 50)
             
             # 解析响应
             if response.data and len(response.data) > 0:
-                b64_data = response.data[0].b64_json
-                img = Image.open(BytesIO(base64.b64decode(b64_data)))
-                tensor = pil_to_tensor(img)
-                return tensor
+                first_item = response.data[0]
+                
+                # 尝试获取base64数据，支持不同的字段名
+                b64_data = None
+                for attr_name in ['b64_json', 'b64', 'base64']:
+                    if hasattr(first_item, attr_name):
+                        b64_data = getattr(first_item, attr_name)
+                        if b64_data:
+                            if debug:
+                                print(f"[DEBUG] 在 {attr_name} 字段中找到base64数据，长度: {len(b64_data)}")
+                            break
+                
+                if not b64_data:
+                    # 检查是否有URL字段，支持URL响应
+                    if hasattr(first_item, 'url') and first_item.url:
+                        if debug:
+                            print(f"[DEBUG] 收到URL响应，开始下载图片: {first_item.url}")
+                        
+                        try:
+                            # 从URL下载图片
+                            img = download_image_from_url(first_item.url, debug=debug)
+                            tensor = pil_to_tensor(img)
+                            return tensor
+                        except Exception as e:
+                            raise ValueError(f"从URL下载图片失败: {e}")
+                    else:
+                        available_attrs = [attr for attr in dir(first_item) if not attr.startswith('_')]
+                        raise ValueError(f"images.edit 未返回有效的base64数据或URL，可用属性: {available_attrs}")
+                
+                if not isinstance(b64_data, str):
+                    raise ValueError(f"base64数据类型错误，期望字符串，实际: {type(b64_data)}")
+                
+                try:
+                    img = Image.open(BytesIO(base64.b64decode(b64_data)))
+                    tensor = pil_to_tensor(img)
+                    return tensor
+                except Exception as e:
+                    if debug:
+                        print(f"[DEBUG] base64解码失败: {e}")
+                        print(f"[DEBUG] base64数据前100字符: {b64_data[:100] if len(b64_data) > 100 else b64_data}")
+                    raise ValueError(f"base64图像数据解码失败: {e}")
             else:
-                raise RuntimeError("API 返回空响应")
+                raise RuntimeError("API 返回空响应或无数据")
             
         except Exception as e:
             error_msg = f"图片编辑失败: {str(e)}"
