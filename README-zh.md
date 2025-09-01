@@ -3,6 +3,95 @@
 
 # ComfyUI FlexAI 插件
 
+现代化的统一 ComfyUI 插件，支持 OpenAI 兼容 API，具备增强调试功能和双模式图像处理能力。
+
+## ✨ 核心特性
+
+### 🌐 多API来源支持
+- **灵活配置**：通过 `.env` 文件支持多个 API 提供商
+- **动态切换**：无需重启 ComfyUI 即可切换提供商
+- **自动检测**：系统自动检测并填充提供商下拉菜单
+- **广泛兼容**：支持 OpenAI、Anthropic、自定义端点等
+
+### 🖼️ OpenAI 图片节点 (`flexai:openai_image`)
+
+**双模式运行：**
+- **编辑模式**：提供 1-4 张图片 → 使用 `images.edit` API
+- **生成模式**：无图片输入 → 使用 `images.generate` API
+
+**增强特性：**
+- **智能响应处理**：支持 base64 和 URL 两种响应格式
+- **自动图片下载**：URL 响应时自动下载转换
+- **增强调试模式**：详细的请求/响应日志和时间统计
+- **英文错误显示**：清晰的错误消息，无字体问题
+- **全面错误处理**：安全拒绝指导和视觉反馈
+
+### 💬 OpenAI 文本节点 (`flexai:openai_text`)
+
+**多模态文本生成：**
+- 纯文本或视觉语言理解 (VQA)
+- 支持 1-4 张参考图片，自动缩放
+- 流式和非流式模式
+- **调试模式**：所有操作的完整 JSON 日志记录
+
+### 🔧 增强调试系统
+
+**新增调试功能：**
+- **详细时间统计**：各处理阶段的精确计时
+- **网络监控**：HTTP 请求/响应跟踪
+- **进度指示**：长时间操作的视觉反馈
+- **错误分析**：智能错误分类和解决方案
+- **英文错误图片**：所有错误显示使用英文，避免字体问题
+
+## 快速开始
+
+### 安装
+
+1. 克隆到 ComfyUI 自定义节点目录：
+   ```bash
+   cd ComfyUI/custom_nodes
+   git clone https://github.com/your-repo/Comfyui-flexai.git
+   ```
+
+2. 安装依赖：
+   ```bash
+   cd Comfyui-flexai
+   pip install -r requirements.txt
+   ```
+
+3. 配置提供商（见配置章节）
+4. 重启 ComfyUI
+
+## 配置
+
+在插件根目录创建 `.env` 文件。
+
+### 单一提供商
+```bash
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_API_BASE=https://api.openai.com/v1  # 可选
+```
+
+### 多提供商（推荐）
+```bash
+# 定义提供商列表
+OPENAI_PROVIDERS=openai,anthropic,custom
+
+# OpenAI
+OPENAI_API_KEY_openai=sk-your-openai-key
+OPENAI_API_BASE_openai=https://api.openai.com/v1
+
+# Anthropic（通过 OpenAI 兼容端点）
+OPENAI_API_KEY_anthropic=sk-your-anthropic-key  
+OPENAI_API_BASE_anthropic=https://api.anthropic.com/v1
+
+# 自定义端点
+OPENAI_API_KEY_custom=your-custom-key
+OPENAI_API_BASE_custom=https://your-api.example.com/v1
+```
+
+# ComfyUI FlexAI 插件
+
 现代化的 ComfyUI 插件，支持 OpenAI 兼容的 API，具备双模式图像处理能力。
 
 ## 功能特性
@@ -111,12 +200,163 @@ OPENAI_API_KEY_custom=your-custom-key
 OPENAI_API_BASE_custom=https://your-api.example.com/v1
 ```
 
-### Nano-Banana (Gemini-2.5-Flash-Image-Preview) 支持
-```bash
-# Nano-Banana 配置示例
-OPENAI_API_KEY_nanobanana=your-nanobanana-api-key
-OPENAI_API_BASE_nanobanana=https://api.nanobanana.example.com/v1
+## 节点参数
+
+### 图片节点 (`flexai:openai_image`)
+
+| 参数 | 类型 | 描述 |
+|------|------|------|
+| `provider` | 选择 | API 提供商选择 |
+| `model` | 字符串 | 模型名称 (如 `dall-e-3`, `dall-e-2`) |
+| `prompt` | 字符串 | 生成/编辑提示词 |
+| `image_1-4` | 图片 | 可选图片（提供任意张则进入编辑模式） |
+| `size` | 字符串 | 输出尺寸 (如 `1024x1024`) |
+| `debug` | 布尔 | **启用详细调试日志** |
+
+### 文本节点 (`flexai:openai_text`)
+
+| 参数 | 类型 | 描述 |
+|------|------|------|
+| `provider` | 选择 | API 提供商选择 |
+| `model` | 字符串 | 模型名称 (如 `gpt-4o`, `gpt-3.5-turbo`) |
+| `system_prompt` | 字符串 | 系统消息 |
+| `user_prompt` | 字符串 | 用户消息 |
+| `image_1-4` | 图片 | 可选参考图片 |
+| `max_tokens` | 整数 | 最大响应令牌数 |
+| `temperature` | 浮点 | 采样温度 (0.0-1.0) |
+| `stream` | 布尔 | 启用流式模式 |
+| `debug` | 布尔 | **启用详细调试日志** |
+
+## 调试模式功能
+
+启用调试模式 (`debug=True`) 获取全面的日志记录：
+
+### 🔍 API 请求/响应跟踪
 ```
+============================================================
+[DEBUG] 🚀 开始图片生成请求
+[DEBUG] ⏰ 请求时间: 2024-09-01 14:30:25
+[DEBUG] 📝 提交到OpenAI Images API的原生JSON数据:
+{
+  "model": "dall-e-3",
+  "prompt": "A cute cat",
+  "size": "1024x1024",
+  "response_format": "b64_json"
+}
+============================================================
+[DEBUG] 📡 正在发送API请求...
+[DEBUG] 💡 生成时间通常在10-60秒之间，请耐心等待...
+```
+
+### ⏱️ 详细时间分析
+```
+[DEBUG] 🎉 图片生成流程完成!
+[DEBUG] ⏱️  总耗时: 23.45 秒
+[DEBUG]    ├─ API调用: 22.10 秒
+[DEBUG]    └─ 数据解码: 1.35 秒
+```
+
+### 🌐 网络下载监控
+```
+[DEBUG] 🌐 开始下载图片
+[DEBUG] 📡 发送HTTP GET请求...
+[DEBUG] ✅ 下载成功!
+[DEBUG] ⏱️  下载耗时: 3.24 秒
+[DEBUG] 📏 下载数据大小: 1,234,567 字节 (1.2 MB)
+[DEBUG] 🖼️  检测到PNG格式图片
+```
+
+### 🚨 智能错误分析
+- **API配置问题**：自动检测和解决方案
+- **网络问题**：详细的连接诊断
+- **模型兼容性**：支持的模型建议
+- **安全拒绝**：内容政策指导
+
+## 问题诊断指南
+
+### 常见问题与解决方案
+
+| 错误类型 | 症状 | 解决方案 |
+|----------|------|----------|
+| **API密钥问题** | "API key not configured" | 检查 `.env` 文件配置 |
+| **网络问题** | "Unable to connect" | 检查网络连接/代理设置 |
+| **不支持的模型** | "not supported model" | 使用 `dall-e-3` 或 `dall-e-2` |
+| **安全拒绝** | "safety system rejected" | 修改提示词内容 |
+| **超时** | 长时间等待 | 增加超时时间或检查API状态 |
+
+### 调试模式的优势
+1. **性能分析**：识别处理中的瓶颈
+2. **网络诊断**：跟踪下载速度和失败
+3. **错误诊断**：获取具体的错误类型和解决方案
+4. **API监控**：查看确切的请求和响应
+5. **进度跟踪**：了解处理阶段
+
+## 技术细节
+
+### 增强的错误处理
+- **英文错误图片**：所有错误信息以英文显示，避免字体问题
+- **智能错误翻译**：常见错误信息的自动翻译
+- **多系统字体支持**：兼容 macOS/Linux/Windows
+- **详细错误上下文**：时间戳和格式化的错误信息
+
+### 响应格式兼容性
+- **Base64 响应**：直接处理各种 base64 字段格式
+- **URL 响应**：自动下载和转换
+- **智能回退**：无缝处理不同 API 提供商
+- **格式检测**：自动 PNG/JPEG 格式识别
+
+### 架构设计
+- **现代 SDK**：基于 OpenAI Python SDK 1.x 构建
+- **多提供商支持**：灵活的 API 来源配置
+- **清晰结构**：统一的 `flexai:` 命名空间
+- **模块化设计**：独立的图像和文本处理工具
+
+### 文件结构
+```
+Comfyui-flexai/
+├── __init__.py                 # 插件注册
+├── provider_config.py          # 多提供商管理
+├── nodes/
+│   ├── flexai/
+│   │   ├── openai_image.py    # 增强的图片节点，带调试功能
+│   │   └── openai_text.py     # 增强的文本节点，带调试功能
+│   └── utils/
+│       ├── openai_standard.py # API工具，带日志记录
+│       └── images.py          # 图片处理工具
+├── requirements.txt           # 依赖
+└── README.md                  # 文档
+```
+
+## 最佳实践
+
+### 图片生成建议
+- 使用 `dall-e-3` 获得最高质量（较慢）
+- 使用 `dall-e-2` 获得更快的生成速度
+- 遇到问题时启用调试模式
+- 保持提示词符合安全政策指导
+
+### 性能优化
+- 监控调试日志中的时间瓶颈
+- 使用适当的图片尺寸（推荐 1024x1024）
+- 考虑网络速度对 URL 响应的影响
+- 设置合理的超时值
+
+### 调试技巧
+- 遇到问题时总是启用 `debug=True`
+- 检查控制台输出的详细诊断信息
+- 使用时间信息识别慢的组件
+- 报告问题时分享调试日志
+
+## 支持
+
+- **问题反馈**：通过 GitHub Issues 报告错误，附带调试日志
+- **功能请求**：通过 GitHub Discussions 提交
+- **文档**：查看 README.md 了解英文版本
+- **调试帮助**：启用调试模式并分享控制台输出
+
+---
+
+❤️ 为 ComfyUI 社区而构建
 
 **支持的模型：**
 - `gemini-2.5-flash-image-preview`：通过OpenAI兼容接口调用Gemini模型，支持图像处理和文本生成

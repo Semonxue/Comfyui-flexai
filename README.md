@@ -3,46 +3,45 @@ English | [中文 / Chinese](README-zh.md)
 
 # ComfyUI FlexAI Plugin
 
-A modern, unified ComfyUI plugin for OpenAI-compatible APIs with dual-mode image processing capabilities.
+A modern, unified ComfyUI plugin for OpenAI-compatible APIs with enhanced debugging and dual-mode image processing capabilities.
 
-## Features
+## ✨ Key Features
 
 ### 🌐 Multiple API Sources Support
-- **Flexible Configuration**: Support configuring multiple API providers in `.env` file
-- **Dynamic Selection**: Nodes can choose different API sources for calls
-- **Auto-Detection**: System automatically detects configured providers and populates dropdown menus
-- **Seamless Switching**: Switch between different providers without restarting
+- **Flexible Configuration**: Support multiple API providers via `.env` file
+- **Dynamic Selection**: Switch between providers without restarting ComfyUI
+- **Auto-Detection**: System automatically detects and populates provider dropdown
+- **Wide Compatibility**: OpenAI, Anthropic, custom endpoints, and more
 
 ### 🖼️ OpenAI Image Node (`flexai:openai_image`)
 
 **Dual-Mode Operation:**
 - **Edit Mode**: Provide 1-4 images → Uses `images.edit` API
-- **Generate Mode**: Provide no images → Uses `images.generate` API
+- **Generate Mode**: No images → Uses `images.generate` API
 
-**Key Features:**
-- Supports 1-4 simultaneous image inputs for editing
-- Automatic mode detection based on image inputs
-- Modern OpenAI Python SDK (>=1.0) integration
-- **Dual Response Format Support**: Automatically handles both base64 and URL responses
-- **Auto Image Download**: When API returns URLs, automatically downloads and converts images
-- Comprehensive error handling with visual feedback
-- Safety system rejection guidance
-- **Enhanced Debug Mode**: Detailed JSON request/response logging
+**Enhanced Features:**
+- **Smart Response Handling**: Supports both base64 and URL responses
+- **Auto Image Download**: Downloads and converts URL responses automatically
+- **Enhanced Debug Mode**: Detailed request/response logging with timing
+- **English Error Display**: Clear error messages without font issues
+- **Comprehensive Error Handling**: Safety rejection guidance and visual feedback
 
 ### 💬 OpenAI Text Node (`flexai:openai_text`)
 
 **Multimodal Text Generation:**
 - Pure text or vision-language understanding (VQA)
-- Support for 1-4 reference images with automatic downscaling
+- Support 1-4 reference images with auto-scaling
 - Streaming and non-streaming modes
-- Auto-fallback for unsupported models
+- **Debug Mode**: Complete JSON logging for all operations
 
-**Advanced Features:**
-- OpenAI SDK compatibility (1.x preferred, 0.x fallback)
-- Usage statistics tracking
-- Reproducible generation with seed control
-- Smart image preprocessing (≤1024px longest side)
-- **Enhanced Debug Mode**: Complete JSON request/response logging for both streaming and non-streaming modes
+### 🔧 Enhanced Debugging System
+
+**New Debug Features:**
+- **Detailed Timing**: Precise timing for each processing stage
+- **Network Monitoring**: HTTP request/response tracking
+- **Progress Indicators**: Visual feedback during long operations
+- **Error Analysis**: Smart error categorization with solutions
+- **English Error Images**: All error displays use English to avoid font issues
 
 ## Quick Start
 
@@ -61,27 +60,7 @@ A modern, unified ComfyUI plugin for OpenAI-compatible APIs with dual-mode image
    ```
 
 3. Configure providers (see Configuration section)
-
 4. Restart ComfyUI
-
-### Basic Usage
-
-**Image Generation:**
-```
-Add flexai:openai_image node
-→ Set provider and model
-→ Enter prompt
-→ Generate!
-```
-
-**Image Editing:**
-```
-Add flexai:openai_image node
-→ Connect image(s) to image_1/2/3/4 inputs
-→ Set provider and model  
-→ Enter editing prompt
-→ Edit!
-```
 
 ## Configuration
 
@@ -111,25 +90,6 @@ OPENAI_API_KEY_custom=your-custom-key
 OPENAI_API_BASE_custom=https://your-api.example.com/v1
 ```
 
-### Nano-Banana (Gemini-2.5-Flash-Image-Preview) Support
-```bash
-# Nano-Banana Configuration Example
-OPENAI_API_KEY_nanobanana=your-nanobanana-api-key
-OPENAI_API_BASE_nanobanana=https://api.nanobanana.example.com/v1
-```
-
-**Supported Models:**
-- `gemini-2.5-flash-image-preview`: Call Gemini models through OpenAI-compatible interface, supporting image processing and text generation
-- Automatic adaptation to OpenAI SDK calling methods, no additional configuration required
-
-### Auto-Detection
-Alternatively, just define keys with suffixes:
-```bash
-OPENAI_API_KEY_provider1=key1
-OPENAI_API_KEY_provider2=key2
-```
-The system will auto-detect and populate the provider dropdown.
-
 ## Node Parameters
 
 ### Image Node (`flexai:openai_image`)
@@ -137,101 +97,109 @@ The system will auto-detect and populate the provider dropdown.
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `provider` | Choice | API provider selection |
-| `model` | String | Model name (e.g., `dall-e-3`) |
+| `model` | String | Model name (e.g., `dall-e-3`, `dall-e-2`) |
 | `prompt` | String | Generation/editing prompt |
 | `image_1-4` | Image | Optional images (edit mode if any provided) |
 | `size` | String | Output size (e.g., `1024x1024`) |
-| `debug` | Boolean | Enable debug logging |
+| `debug` | Boolean | **Enable detailed debug logging** |
 
 ### Text Node (`flexai:openai_text`)
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `provider` | Choice | API provider selection |
-| `model` | String | Model name (e.g., `gpt-4o`) |
+| `model` | String | Model name (e.g., `gpt-4o`, `gpt-3.5-turbo`) |
 | `system_prompt` | String | System message |
 | `user_prompt` | String | User message |
 | `image_1-4` | Image | Optional reference images |
 | `max_tokens` | Integer | Maximum response tokens |
 | `temperature` | Float | Sampling temperature (0.0-1.0) |
 | `stream` | Boolean | Enable streaming mode |
-| `debug` | Boolean | Enable debug logging |
+| `debug` | Boolean | **Enable detailed debug logging** |
 
-## Advanced Usage
+## Debug Mode Features
 
-### Response Format Compatibility
+Enable debug mode (`debug=True`) for comprehensive logging:
 
-**Automatic Format Detection:**
-- **Base64 Response**: Direct processing of b64_json, b64, base64, or data fields
-- **URL Response**: Automatic download and conversion when API returns image URLs
-- **Smart Fallback**: Seamless handling across different API providers
+### 🔍 API Request/Response Tracking
+```
+============================================================
+[DEBUG] 🚀 开始图片生成请求
+[DEBUG] ⏰ 请求时间: 2024-09-01 14:30:25
+[DEBUG] 📝 提交到OpenAI Images API的原生JSON数据:
+{
+  "model": "dall-e-3",
+  "prompt": "A cute cat",
+  "size": "1024x1024",
+  "response_format": "b64_json"
+}
+============================================================
+[DEBUG] 📡 正在发送API请求...
+[DEBUG] 💡 生成时间通常在10-60秒之间，请耐心等待...
+```
 
-**Enhanced Error Handling:**
-- Detailed validation of response data types
-- Network timeout and retry mechanisms
-- Comprehensive diagnostic information in debug mode
+### ⏱️ Detailed Timing Analysis
+```
+[DEBUG] 🎉 图片生成流程完成!
+[DEBUG] ⏱️  总耗时: 23.45 秒
+[DEBUG]    ├─ API调用: 22.10 秒
+[DEBUG]    └─ 数据解码: 1.35 秒
+```
 
-### Debug Mode
+### 🌐 Network Download Monitoring
+```
+[DEBUG] 🌐 开始下载图片
+[DEBUG] 📡 发送HTTP GET请求...
+[DEBUG] ✅ 下载成功!
+[DEBUG] ⏱️  下载耗时: 3.24 秒
+[DEBUG] 📏 下载数据大小: 1,234,567 字节 (1.2 MB)
+[DEBUG] 🖼️  检测到PNG格式图片
+```
 
-Enable enhanced debugging (`debug=True`) for detailed insights:
-- **API Requests**: Complete JSON parameters sent to API
-- **API Responses**: Full JSON responses from API (streaming and non-streaming)
-- **Image Processing**: URL download progress and base64 conversion details
-- **Error Diagnostics**: Detailed error messages with suggested solutions
+### 🚨 Smart Error Analysis
+- **API Configuration Issues**: Automatic detection and solutions
+- **Network Problems**: Detailed connection diagnostics  
+- **Model Compatibility**: Supported model recommendations
+- **Safety Rejections**: Content policy guidance
 
-### Image Processing Modes
+## Troubleshooting Guide
 
-**Pure Generation:**
-- Don't connect any images
-- Uses `images.generate` endpoint
-- Perfect for text-to-image generation
+### Common Issues & Solutions
 
-**Single Image Edit:**
-- Connect one image to `image_1`
-- Uses `images.edit` endpoint
-- Great for style transfer, modifications
+| Error Type | Symptoms | Solution |
+|------------|----------|----------|
+| **API Key Problem** | "API key not configured" | Check `.env` file configuration |
+| **Network Issues** | "Unable to connect" | Check internet connection/proxy |
+| **Unsupported Model** | "not supported model" | Use `dall-e-3` or `dall-e-2` |
+| **Safety Rejection** | "safety system rejected" | Modify prompt content |
+| **Timeout** | Long wait times | Increase timeout or check API status |
 
-**Multi-Image Edit:**
-- Connect 2-4 images to `image_1`, `image_2`, etc.
-- All images sent to `images.edit` as array
-- Useful for complex scene editing
-
-### Multi-Provider Usage
-
-**Configuring Multiple Sources:**
-- Define multiple providers in the `.env` file
-- Each node can independently select API source
-- Support for OpenAI, Anthropic, custom endpoints, etc.
-
-**Switching Providers:**
-- No need to restart ComfyUI
-- Real-time switching between different models and services
-- Maintain workflow compatibility
-
-### Error Handling
-
-The plugin includes robust error handling:
-- Safety system rejections show helpful guidance
-- Network errors display in debug mode
-- Failed operations generate error visualization images
-- Non-blocking: workflow continues even with failures
-
-### Streaming Text
-
-Enable streaming for real-time text generation:
-- Set `stream=True` in text node
-- Receive incremental token updates
-- Includes usage statistics when supported
-- Better UX for long-form generation
+### Debug Mode Benefits
+1. **Performance Analysis**: Identify bottlenecks in processing
+2. **Network Diagnostics**: Track download speeds and failures
+3. **Error Diagnosis**: Get specific error types and solutions
+4. **API Monitoring**: See exact requests and responses
+5. **Progress Tracking**: Understand processing stages
 
 ## Technical Details
 
+### Enhanced Error Handling
+- **English Error Images**: All error messages display in English to avoid font issues
+- **Smart Error Translation**: Automatic translation of common error messages
+- **Multi-System Font Support**: Compatible across macOS/Linux/Windows
+- **Detailed Error Context**: Timestamps and formatted error information
+
+### Response Format Compatibility
+- **Base64 Response**: Direct processing of various base64 field formats
+- **URL Response**: Automatic download and conversion
+- **Smart Fallback**: Seamless handling across different API providers
+- **Format Detection**: Automatic PNG/JPEG format identification
+
 ### Architecture
 - **Modern SDK**: Built on OpenAI Python SDK 1.x
-- **Multi-Provider Support**: Flexible configuration of multiple API sources, supporting OpenAI-compatible endpoints
-- **Nano-Banana Integration**: Native support for Gemini-2.5-Flash-Image-Preview and other models
-- **Clean Structure**: Unified namespace with `flexai:` prefix
-- **Modular Design**: Separate image and text processing
+- **Multi-Provider Support**: Flexible API source configuration
+- **Clean Structure**: Unified `flexai:` namespace
+- **Modular Design**: Separate image and text processing utilities
 
 ### File Structure
 ```
@@ -240,87 +208,41 @@ Comfyui-flexai/
 ├── provider_config.py          # Multi-provider management
 ├── nodes/
 │   ├── flexai/
-│   │   ├── openai_image.py    # Image generation/editing node
-│   │   └── openai_text.py     # Text generation node
+│   │   ├── openai_image.py    # Enhanced image node with debug
+│   │   └── openai_text.py     # Enhanced text node with debug
 │   └── utils/
-│       ├── openai_standard.py # OpenAI API utilities
+│       ├── openai_standard.py # API utilities with logging
 │       └── images.py          # Image processing utilities
-├── test/
-│   └── test_plugin.py         # Plugin tests
-├── requirements.txt           # Python dependencies
-└── README.md                  # This file
+├── requirements.txt           # Dependencies
+└── README.md                  # Documentation
 ```
 
-### Compatibility
+## Best Practices
 
-- **ComfyUI**: Any recent version with custom nodes support
-- **Python**: 3.8+ (tested with 3.10+)
-- **OpenAI SDK**: 1.0+ (preferred) with 0.x fallback
-- **APIs**: Any OpenAI-compatible endpoint, including Nano-Banana (Gemini-2.5-Flash-Image-Preview)
-- **Providers**: OpenAI, Anthropic, custom endpoints, etc.
+### For Image Generation
+- Use `dall-e-3` for highest quality (slower)
+- Use `dall-e-2` for faster generation
+- Enable debug mode when troubleshooting
+- Keep prompts under safety policy guidelines
 
-## Troubleshooting
+### For Performance
+- Monitor debug logs for timing bottlenecks
+- Use appropriate image sizes (1024x1024 recommended)
+- Consider network speed for URL-based responses
+- Set reasonable timeout values
 
-### Common Issues
-
-**Plugin not loading:**
-- Check `requirements.txt` installation
-- Verify `.env` file configuration
-- Restart ComfyUI completely
-
-**API errors:**
-- Enable `debug=True` for detailed logging
-- Verify API keys and endpoints
-- Check provider-specific documentation
-
-**Image processing issues:**
-- Ensure images are valid ComfyUI tensors
-- Check image format compatibility
-- Verify model supports image processing
-
-**Safety rejections:**
-- Review OpenAI usage policies
-- Modify prompt content
-- Try different model variants
-
-### Debug Mode
-
-Enable debug mode (`debug=True`) for verbose logging:
-- API request/response details
-- Image processing steps
-- Error stack traces
-- Performance metrics
-
-## Testing
-
-Run the test suite:
-```bash
-python -m test.test_plugin
-```
-
-This verifies:
-- Plugin loading
-- Provider configuration
-- Node registration
-- Basic functionality
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details.
+### For Debugging
+- Always enable `debug=True` when experiencing issues
+- Check console output for detailed diagnostics
+- Use timing information to identify slow components
+- Share debug logs when reporting issues
 
 ## Support
 
-- **Issues**: Report bugs via GitHub Issues
-- **Discussions**: Feature requests and general questions
+- **Issues**: Report bugs via GitHub Issues with debug logs
+- **Feature Requests**: Submit via GitHub Discussions  
 - **Documentation**: Check README-zh.md for Chinese version
+- **Debug Help**: Enable debug mode and share console output
 
 ---
 

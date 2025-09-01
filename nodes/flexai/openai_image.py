@@ -539,30 +539,49 @@ class OpenAIImageNode:
                     pass
 
     def _create_error_image(self, error_msg):
-        """创建错误信息图片"""
+        """Create error message image with English text only"""
         try:
             from PIL import ImageDraw, ImageFont
             
-            # 创建一个简单的错误信息图片
+            # Create a simple error message image
             img = Image.new('RGB', (512, 256), color='#ff4444')
             draw = ImageDraw.Draw(img)
             
-            # 尝试使用系统字体，失败则使用默认字体
+            # Try to use system font, fallback to default font
             try:
-                font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 16)
+                # Try multiple font paths for better cross-platform compatibility
+                font_paths = [
+                    "/System/Library/Fonts/Arial.ttf",  # macOS
+                    "/System/Library/Fonts/Helvetica.ttc",  # macOS
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
+                    "/Windows/Fonts/arial.ttf",  # Windows
+                    "/Windows/Fonts/calibri.ttf"  # Windows
+                ]
+                font = None
+                for font_path in font_paths:
+                    try:
+                        font = ImageFont.truetype(font_path, 16)
+                        break
+                    except:
+                        continue
+                if font is None:
+                    font = ImageFont.load_default()
             except:
                 font = ImageFont.load_default()
             
-            # 绘制错误信息（截断长文本）
-            text = error_msg[:120] + "..." if len(error_msg) > 120 else error_msg
+            # Convert error message to English if it contains Chinese characters
+            english_error = self._translate_error_to_english(error_msg)
             
-            # 简单的文本换行
+            # Truncate long text
+            text = english_error[:120] + "..." if len(english_error) > 120 else english_error
+            
+            # Simple text wrapping
             words = text.split(' ')
             lines = []
             current_line = ""
             for word in words:
                 test_line = current_line + " " + word if current_line else word
-                if len(test_line) <= 40:  # 每行大约40个字符
+                if len(test_line) <= 40:  # About 40 characters per line
                     current_line = test_line
                 else:
                     if current_line:
@@ -571,20 +590,59 @@ class OpenAIImageNode:
             if current_line:
                 lines.append(current_line)
             
-            # 绘制多行文本
-            y = 10
-            for line in lines[:8]:  # 最多8行
+            # Add header
+            draw.text((10, 5), "IMAGE GENERATION ERROR", fill='white', font=font)
+            draw.text((10, 25), "=" * 35, fill='white', font=font)
+            
+            # Draw multi-line text
+            y = 50
+            for line in lines[:7]:  # Max 7 lines to leave space for header
                 draw.text((10, y), line, fill='white', font=font)
                 y += 25
+            
+            # Add footer with timestamp
+            import time
+            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            draw.text((10, 230), f"Time: {timestamp}", fill='#ffcccc', font=font)
             
             tensor_img = pil_to_tensor(img)
             return (tensor_img,)
             
         except Exception:
-            # 如果连错误图片都无法创建，返回纯色图片
+            # If error image creation fails, return a simple red image
             img = Image.new('RGB', (256, 256), color='red')
             tensor_img = pil_to_tensor(img)
             return (tensor_img,)
+    
+    def _translate_error_to_english(self, error_msg):
+        """Translate common Chinese error messages to English"""
+        # Common Chinese to English translations
+        translations = {
+            "未找到 provider": "Provider not found",
+            "API 密钥未配置或仍为占位符": "API key not configured or still placeholder",
+            "图片生成失败": "Image generation failed",
+            "图片编辑失败": "Image editing failed",
+            "下载图片失败": "Image download failed",
+            "无法连接到图片URL": "Unable to connect to image URL",
+            "下载图片超时": "Image download timeout",
+            "base64图像数据解码失败": "Base64 image data decode failed",
+            "API 返回空响应或无数据": "API returned empty response or no data",
+            "没有有效的图片可以处理": "No valid images to process",
+            "无效的base64数据格式": "Invalid base64 data format",
+            "未返回有效的base64数据或URL": "No valid base64 data or URL returned"
+        }
+        
+        english_msg = error_msg
+        for chinese, english in translations.items():
+            english_msg = english_msg.replace(chinese, english)
+        
+        # Remove any remaining Chinese characters and replace with placeholder
+        import re
+        chinese_pattern = re.compile(r'[\u4e00-\u9fff]+')
+        if chinese_pattern.search(english_msg):
+            english_msg = re.sub(chinese_pattern, '[Chinese text]', english_msg)
+        
+        return english_msg
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "generate_image"
