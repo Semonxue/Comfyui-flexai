@@ -1,0 +1,4 @@
+openai
+Pillow
+python-dotenv
+requests
