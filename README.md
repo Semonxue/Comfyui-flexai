@@ -7,6 +7,12 @@ A modern, unified ComfyUI plugin for OpenAI-compatible APIs with dual-mode image
 
 ## Features
 
+### 🌐 Multiple API Sources Support
+- **Flexible Configuration**: Support configuring multiple API providers in `.env` file
+- **Dynamic Selection**: Nodes can choose different API sources for calls
+- **Auto-Detection**: System automatically detects configured providers and populates dropdown menus
+- **Seamless Switching**: Switch between different providers without restarting
+
 ### 🖼️ OpenAI Image Node (`flexai:openai_image`)
 
 **Dual-Mode Operation:**
@@ -101,6 +107,17 @@ OPENAI_API_KEY_custom=your-custom-key
 OPENAI_API_BASE_custom=https://your-api.example.com/v1
 ```
 
+### Nano-Banana (Gemini-2.5-Flash-Image-Preview) Support
+```bash
+# Nano-Banana Configuration Example
+OPENAI_API_KEY_nanobanana=your-nanobanana-api-key
+OPENAI_API_BASE_nanobanana=https://api.nanobanana.example.com/v1
+```
+
+**Supported Models:**
+- `gemini-2.5-flash-image-preview`: Call Gemini models through OpenAI-compatible interface, supporting image processing and text generation
+- Automatic adaptation to OpenAI SDK calling methods, no additional configuration required
+
 ### Auto-Detection
 Alternatively, just define keys with suffixes:
 ```bash
@@ -155,6 +172,18 @@ The system will auto-detect and populate the provider dropdown.
 - All images sent to `images.edit` as array
 - Useful for complex scene editing
 
+### Multi-Provider Usage
+
+**Configuring Multiple Sources:**
+- Define multiple providers in the `.env` file
+- Each node can independently select API source
+- Support for OpenAI, Anthropic, custom endpoints, etc.
+
+**Switching Providers:**
+- No need to restart ComfyUI
+- Real-time switching between different models and services
+- Maintain workflow compatibility
+
 ### Error Handling
 
 The plugin includes robust error handling:
@@ -175,9 +204,10 @@ Enable streaming for real-time text generation:
 
 ### Architecture
 - **Modern SDK**: Built on OpenAI Python SDK 1.x
+- **Multi-Provider Support**: Flexible configuration of multiple API sources, supporting OpenAI-compatible endpoints
+- **Nano-Banana Integration**: Native support for Gemini-2.5-Flash-Image-Preview and other models
 - **Clean Structure**: Unified namespace with `flexai:` prefix
 - **Modular Design**: Separate image and text processing
-- **Multi-Provider**: Supports any OpenAI-compatible endpoint
 
 ### File Structure
 ```
@@ -202,7 +232,8 @@ Comfyui-flexai/
 - **ComfyUI**: Any recent version with custom nodes support
 - **Python**: 3.8+ (tested with 3.10+)
 - **OpenAI SDK**: 1.0+ (preferred) with 0.x fallback
-- **APIs**: Any OpenAI-compatible endpoint
+- **APIs**: Any OpenAI-compatible endpoint, including Nano-Banana (Gemini-2.5-Flash-Image-Preview)
+- **Providers**: OpenAI, Anthropic, custom endpoints, etc.
 
 ## Troubleshooting
 

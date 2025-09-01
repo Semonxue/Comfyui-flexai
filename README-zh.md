@@ -7,6 +7,12 @@
 
 ## 功能特性
 
+### 🌐 多套API来源支持
+- **灵活配置**：在 `.env` 文件中支持配置多个API提供商
+- **动态选择**：节点可以选择不同的API来源进行调用
+- **自动检测**：系统自动检测配置的提供商并填充下拉菜单
+- **无缝切换**：无需重启即可在不同提供商间切换
+
 ### 🖼️ OpenAI 图片节点 (`flexai:openai_image`)
 
 **双模式运行：**
@@ -101,6 +107,17 @@ OPENAI_API_KEY_custom=your-custom-key
 OPENAI_API_BASE_custom=https://your-api.example.com/v1
 ```
 
+### Nano-Banana (Gemini-2.5-Flash-Image-Preview) 支持
+```bash
+# Nano-Banana 配置示例
+OPENAI_API_KEY_nanobanana=your-nanobanana-api-key
+OPENAI_API_BASE_nanobanana=https://api.nanobanana.example.com/v1
+```
+
+**支持的模型：**
+- `gemini-2.5-flash-image-preview`：通过OpenAI兼容接口调用Gemini模型，支持图像处理和文本生成
+- 自动适配OpenAI SDK调用方式，无需额外配置
+
 ### 自动检测
 或者，只需定义带后缀的密钥：
 ```bash
@@ -155,6 +172,18 @@ OPENAI_API_KEY_provider2=key2
 - 所有图片作为数组发送到 `images.edit`
 - 适合复杂场景编辑
 
+### 多提供商使用
+
+**配置多个来源：**
+- 在 `.env` 文件中定义多个提供商
+- 每个节点可以独立选择API来源
+- 支持OpenAI、Anthropic、自定义端点等
+
+**切换提供商：**
+- 无需重启ComfyUI
+- 实时切换不同模型和服务
+- 保持工作流兼容性
+
 ### 错误处理
 
 插件包含强大的错误处理：
@@ -175,9 +204,10 @@ OPENAI_API_KEY_provider2=key2
 
 ### 架构
 - **现代 SDK**：基于 OpenAI Python SDK 1.x 构建
+- **多提供商支持**：灵活配置多个API来源，支持OpenAI兼容端点
+- **Nano-Banana集成**：原生支持Gemini-2.5-Flash-Image-Preview等模型
 - **清晰结构**：使用 `flexai:` 前缀的统一命名空间
 - **模块化设计**：独立的图片和文本处理
-- **多提供商**：支持任何 OpenAI 兼容端点
 
 ### 文件结构
 ```
@@ -202,7 +232,8 @@ Comfyui-flexai/
 - **ComfyUI**：任何支持自定义节点的最新版本
 - **Python**：3.8+ (使用 3.10+ 测试)
 - **OpenAI SDK**：1.0+ (优先) 支持 0.x 回退
-- **APIs**：任何 OpenAI 兼容端点
+- **APIs**：任何 OpenAI 兼容端点，包括 Nano-Banana (Gemini-2.5-Flash-Image-Preview)
+- **提供商**：OpenAI、Anthropic、自定义端点等
 
 ## 故障排除
 
