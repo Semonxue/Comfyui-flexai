@@ -113,4 +113,16 @@ OPENAI_API_BASE_custom=https://your-api.example.com/v1
 
 ---
 
+## 示例工作流
+
+### 产品放置 (Product Placement)
+![产品放置工作流缩略图](workflows/flexai-product-placement.jpg)
+[下载工作流](workflows/flexai-product-placement.json)
+
+### 手办换装 (Figure Redress)
+![手办换装工作流缩略图](workflows/flexai-figure-redress.jpg)
+[下载工作流](workflows/flexai-figure-redress.json)
+
+---
+
 为 ComfyUI 社区用 ❤️ 构建

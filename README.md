@@ -110,4 +110,16 @@ OPENAI_API_BASE_custom=https://your-api.example.com/v1
 
 ---
 
+## Example Workflows
+
+### Product Placement
+![Product Placement Workflow Thumbnail](workflows/flexai-product-placement.jpg)
+[Download Workflow](workflows/flexai-product-placement.json)
+
+### Figure Redress
+![Figure Redress Workflow Thumbnail](workflows/flexai-figure-redress.jpg)
+[Download Workflow](workflows/flexai-figure-redress.json)
+
+---
+
 Built with ❤️ for the ComfyUI community
