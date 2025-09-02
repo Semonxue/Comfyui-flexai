@@ -7,6 +7,8 @@
 分类(Category): flexai
 """
 
+__version__ = "1.0.0"
+
 import os
 import sys
 import importlib.util
@@ -45,9 +47,9 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 }
 
 __all__ = [
+    '__version__',
     'NODE_CLASS_MAPPINGS',
     'NODE_DISPLAY_NAME_MAPPINGS',
-    'GenImageNode',
     'OpenAIImageNode',
     'OpenAITextNode'
 ]

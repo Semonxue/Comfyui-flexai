@@ -3,6 +3,9 @@
 
 # ComfyUI FlexAI 插件
 
+[![版本](https://img.shields.io/badge/版本-1.0.0-blue.svg)](https://github.com/your-repo/Comfyui-flexai)
+[![许可](https://img.shields.io/badge/许可-MIT-green.svg)](LICENSE)
+
 现代化的统一 ComfyUI 插件，支持 OpenAI 兼容 API，具备增强调试功能和双模式图像处理能力。
 
 ## ✨ 核心特性
@@ -558,9 +561,20 @@ MIT 许可证 - 详见 LICENSE 文件。
 
 ## 支持
 
-- **问题报告**：通过 GitHub Issues 报告 bug
-- **讨论**：功能请求和一般问题
+- **问题报告**：通过 GitHub Issues 报告 bug，请附带调试日志
+- **功能请求**：通过 GitHub Discussions 提交
 - **文档**：查看 README.md 英文版本
+- **调试帮助**：启用调试模式并分享控制台输出
+
+## 更新历史
+
+### v1.0.0 (2024-09-02)
+- API响应调试增强和None数据安全检查
+- 调试功能改进，修复中文字体显示问题
+- 高级超时控制和进度模拟
+- URL响应支持和完整调试日志
+- 多提供商配置支持
+- 双模式图像处理的首个稳定版本
 
 ---
 

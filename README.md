@@ -3,6 +3,9 @@ English | [中文 / Chinese](README-zh.md)
 
 # ComfyUI FlexAI Plugin
 
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/your-repo/Comfyui-flexai)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 A modern, unified ComfyUI plugin for OpenAI-compatible APIs with enhanced debugging and dual-mode image processing capabilities.
 
 ## ✨ Key Features
@@ -243,6 +246,16 @@ Comfyui-flexai/
 - **Feature Requests**: Submit via GitHub Discussions  
 - **Documentation**: Check README-zh.md for Chinese version
 - **Debug Help**: Enable debug mode and share console output
+
+## Update History
+
+### v1.0.0 (2024-09-02)
+- Enhanced API response debugging and safety checks for None data
+- Improved debugging features with Chinese font issue fixes
+- Added advanced timeout controls and progress simulation
+- Implemented URL response support with comprehensive debug logging
+- Multi-provider configuration support
+- Initial stable release with dual-mode image processing
 
 ---
 

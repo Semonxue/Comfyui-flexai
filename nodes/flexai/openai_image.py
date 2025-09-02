@@ -1,4 +1,4 @@
-"""OpenAIImageNode - 统一命名的图片生成/编辑节点.
+"""OpenAIImageNode - 统一命名的图片生成/编辑节点 (ComfyUI FlexAI Plugin v1.0.0).
 
 特性:
  - 双模式运行: 生成模式 (images.generate) 和编辑模式 (images.edit)
@@ -8,6 +8,7 @@
  - 错误处理: 安全系统拒绝时提供友好提示，生成错误图片而非异常
  - 使用现代 OpenAI Python SDK (>=1.0)
  - 支持base64和URL两种响应格式
+ - 增强调试: 详细API请求响应日志和完整错误分析
 """
 from __future__ import annotations
 import os
@@ -419,7 +420,7 @@ class OpenAIImageNode:
                 try:
                     resp_dict = response.model_dump() if hasattr(response, 'model_dump') else str(response)
                     if isinstance(resp_dict, dict):
-                        # 首先打印完整的响应对象JSON体（不过滤base64数据）
+                        # 打印完整的响应对象JSON体
                         print("[DEBUG] 🔍 完整响应对象JSON体:")
                         complete_resp = resp_dict.copy()
                         # 为了可读性，如果base64数据太长，截取前100和后100字符
@@ -433,20 +434,6 @@ class OpenAIImageNode:
                                             complete_item[field] = f"{b64_data[:100]}...{b64_data[-100:]} [完整长度: {len(b64_data)} 字符]"
                                     complete_resp['data'][i] = complete_item
                         print(json.dumps(complete_resp, ensure_ascii=False, indent=2))
-                        
-                        print("\n[DEBUG] 📊 响应摘要（隐藏长base64数据）:")
-                        # 然后打印摘要版本（隐藏长base64数据）
-                        debug_resp = resp_dict.copy()
-                        if 'data' in debug_resp and isinstance(debug_resp['data'], list):
-                            for i, item in enumerate(debug_resp['data']):
-                                if isinstance(item, dict):
-                                    debug_item = item.copy()
-                                    for field in ['b64_json', 'b64', 'base64']:
-                                        if field in debug_item and isinstance(debug_item[field], str):
-                                            b64_length = len(debug_item[field])
-                                            debug_item[field] = f'<base64_data_length: {b64_length}>'
-                                    debug_resp['data'][i] = debug_item
-                        print(json.dumps(debug_resp, ensure_ascii=False, indent=2))
                     else:
                         print(resp_dict)
                 except Exception as e:

@@ -1,10 +1,11 @@
-"""OpenAITextNode - 统一命名的文本生成节点.
+"""OpenAITextNode - 统一命名的文本生成节点 (ComfyUI FlexAI Plugin v1.0.0).
 
 特点:
  - 使用现代 openai>=1.x 客户端 (OpenAI)
  - 多模态: 支持可选 0-4 张参考图 (data URL image_url)
  - 内部固定 max_tokens=4096; 精简参数(去除 legacy response_language/max_tokens)
  - 可供旧 key (flexai:gentext) 兼容, 由插件入口重复映射
+ - 增强调试: 完整JSON请求响应日志和流式输出支持
 """
 import os
 from dotenv import load_dotenv
