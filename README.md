@@ -3,7 +3,7 @@ English | [中文 / Chinese](README-zh.md)
 
 # ComfyUI FlexAI Plugin
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/your-repo/Comfyui-flexai)
+[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/your-repo/Comfyui-flexai)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 A modern, unified ComfyUI plugin for OpenAI-compatible APIs with enhanced debugging and dual-mode image processing capabilities.
@@ -11,6 +11,7 @@ A modern, unified ComfyUI plugin for OpenAI-compatible APIs with enhanced debugg
 I wrote this plugin mainly to simplify my own workflow, allowing access to LLM or image generation through standardized OpenAI interfaces. Recently, I've been mainly using this node to play with Gemini-2.5-Flash-Image generation (haven't tested the official Gemini interface, I'm connecting to an OpenAI-compatible endpoint), and the results are quite good.
 
 ## Recent Updates
+- 2025-9-2 v1.0.1 Optimized error messages in debug mode, added support for free models on OpenRouter
 - 2025-9-2 v1.0 release, tested integration with [tuzi](https://api.tu-zi.com/) and [GB](https://github.com/snailyp/gemini-balance) works perfectly
 - 2025-8-31 Plugin initialization
 
@@ -92,6 +93,7 @@ OPENAI_API_BASE_custom=https://your-api.example.com/v1
 | `prompt` | String | Generation/editing prompt |
 | `image_1-4` | Image | Optional images (edit mode if any provided) |
 | `size` | String | Output size (e.g., `1024x1024`) |
+| `compatibility_mode` | Boolean | **Compatibility Mode**: Enable chat endpoint for image generation, compatible with OpenRouter and other third-party services |
 | `debug` | Boolean | **Enable detailed debug logging** |
 
 ### Text Node (`flexai:openai_text`)
