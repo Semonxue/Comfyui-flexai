@@ -395,7 +395,11 @@ class OpenAIImageNode:
                 if debug:
                     print(f"[DEBUG] ✅ API请求成功完成!")
                     print(f"[DEBUG] ⏱️  总耗时: {request_duration:.2f} 秒")
-                    print(f"[DEBUG] 📊 返回 {len(response.data)} 张图片")
+                    # 安全地检查response.data是否存在
+                    if response.data is not None:
+                        print(f"[DEBUG] 📊 返回 {len(response.data)} 张图片")
+                    else:
+                        print(f"[DEBUG] ⚠️  响应中没有data字段或data为空")
                     
             except Exception as api_error:
                 request_duration = time.time() - start_time
@@ -415,7 +419,23 @@ class OpenAIImageNode:
                 try:
                     resp_dict = response.model_dump() if hasattr(response, 'model_dump') else str(response)
                     if isinstance(resp_dict, dict):
-                        # 如果包含base64数据，只显示长度而不是全部内容
+                        # 首先打印完整的响应对象JSON体（不过滤base64数据）
+                        print("[DEBUG] 🔍 完整响应对象JSON体:")
+                        complete_resp = resp_dict.copy()
+                        # 为了可读性，如果base64数据太长，截取前100和后100字符
+                        if 'data' in complete_resp and isinstance(complete_resp['data'], list):
+                            for i, item in enumerate(complete_resp['data']):
+                                if isinstance(item, dict):
+                                    complete_item = item.copy()
+                                    for field in ['b64_json', 'b64', 'base64']:
+                                        if field in complete_item and isinstance(complete_item[field], str) and len(complete_item[field]) > 200:
+                                            b64_data = complete_item[field]
+                                            complete_item[field] = f"{b64_data[:100]}...{b64_data[-100:]} [完整长度: {len(b64_data)} 字符]"
+                                    complete_resp['data'][i] = complete_item
+                        print(json.dumps(complete_resp, ensure_ascii=False, indent=2))
+                        
+                        print("\n[DEBUG] 📊 响应摘要（隐藏长base64数据）:")
+                        # 然后打印摘要版本（隐藏长base64数据）
                         debug_resp = resp_dict.copy()
                         if 'data' in debug_resp and isinstance(debug_resp['data'], list):
                             for i, item in enumerate(debug_resp['data']):
@@ -432,10 +452,16 @@ class OpenAIImageNode:
                 except Exception as e:
                     print(f"JSON序列化失败: {e}")
                     print(f"原始响应: {response}")
+                    # 如果JSON序列化失败，尝试打印响应对象的属性
+                    if hasattr(response, '__dict__'):
+                        print(f"[DEBUG] 响应对象属性: {response.__dict__}")
+                    else:
+                        available_attrs = [attr for attr in dir(response) if not attr.startswith('_')]
+                        print(f"[DEBUG] 响应可用属性: {available_attrs}")
                 print("=" * 60)
             
             # 解析响应
-            if response.data and len(response.data) > 0:
+            if response.data is not None and len(response.data) > 0:
                 if debug:
                     print(f"[DEBUG] 🔍 开始解析响应数据...")
                     
@@ -521,6 +547,17 @@ class OpenAIImageNode:
             else:
                 if debug:
                     print(f"[DEBUG] ❌ API返回空响应或无数据")
+                    print(f"[DEBUG] 🔍 响应对象类型: {type(response)}")
+                    print(f"[DEBUG] 🔍 response.data 值: {response.data}")
+                    print(f"[DEBUG] 🔍 response.data 类型: {type(response.data) if hasattr(response, 'data') else 'No data attribute'}")
+                    
+                    # 尝试获取响应的所有属性
+                    if hasattr(response, '__dict__'):
+                        print(f"[DEBUG] 🔍 响应对象属性: {list(response.__dict__.keys())}")
+                    else:
+                        available_attrs = [attr for attr in dir(response) if not attr.startswith('_')]
+                        print(f"[DEBUG] 🔍 响应可用属性: {available_attrs}")
+                
                 raise RuntimeError("API 返回空响应或无数据")
             
         except Exception as e:
