@@ -31,6 +31,7 @@ pil_to_base64 = _images_module.pil_to_base64
 ensure_client = _openai_standard_module.ensure_client
 build_multimodal_messages = _openai_standard_module.build_multimodal_messages
 chat_complete = _openai_standard_module.chat_complete
+debug_log = _openai_standard_module.debug_log
 
 plugin_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 load_dotenv(os.path.join(plugin_root, '.env'), override=True)
@@ -100,7 +101,7 @@ class OpenAITextNode:
                 data_urls.append(pil_to_base64(pil_img, fmt="JPEG"))
             except Exception:
                 if debug:
-                    print("[openai_text] 忽略无法处理的参考图")
+                    debug_log("Ignoring unprocessable reference image")
                 continue
 
         messages = build_multimodal_messages(system_prompt, user_prompt, data_urls)

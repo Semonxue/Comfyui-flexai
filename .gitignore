@@ -1,5 +1,8 @@
 .env
+debug.log
 __pycache__/
 *.pyc
 *.pyo
 .DS_Store
+./doc/
+doc/

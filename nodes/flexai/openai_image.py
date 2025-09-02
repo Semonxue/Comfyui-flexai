@@ -43,6 +43,7 @@ generate_image_b64 = _openai_standard_module.generate_image_b64
 chat_complete = _openai_standard_module.chat_complete
 build_multimodal_messages = _openai_standard_module.build_multimodal_messages
 _truncate_base64_in_dict = _openai_standard_module._truncate_base64_in_dict
+debug_log = _openai_standard_module.debug_log
 
 plugin_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 load_dotenv(os.path.join(plugin_root, '.env'), override=True)
@@ -51,9 +52,7 @@ load_dotenv(os.path.join(plugin_root, '.env'), override=True)
 def download_image_from_url(url: str, timeout: int = 30, debug: bool = False) -> Image.Image:
     """从URL下载图片并返回PIL Image对象"""
     if debug:
-        print(f"[DEBUG] 🌐 开始下载图片")
-        print(f"[DEBUG] 🔗 URL: {url}")
-        print(f"[DEBUG] ⏰ 超时设置: {timeout} 秒")
+        debug_log(f"Starting image download from URL: {url[:100]}...")
     
     # 记录下载开始时间
     import time
@@ -64,28 +63,12 @@ def download_image_from_url(url: str, timeout: int = 30, debug: bool = False) ->
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
         
-        if debug:
-            print(f"[DEBUG] 📡 发送HTTP GET请求...")
-            print(f"[DEBUG] 🔧 User-Agent: {headers['User-Agent']}")
-        
         response = requests.get(url, headers=headers, timeout=timeout)
         request_duration = time.time() - start_time
         
-        if debug:
-            print(f"[DEBUG] ✅ HTTP请求完成!")
-            print(f"[DEBUG] ⏱️  请求耗时: {request_duration:.2f} 秒")
-            print(f"[DEBUG] 📊 HTTP状态码: {response.status_code}")
-            
         response.raise_for_status()  # 如果HTTP状态不是200会抛出异常
         
         download_duration = time.time() - start_time
-        
-        if debug:
-            print(f"[DEBUG] ✅ 下载成功!")
-            print(f"[DEBUG] ⏱️  总下载耗时: {download_duration:.2f} 秒")
-            print(f"[DEBUG] 📏 下载数据大小: {len(response.content):,} 字节 ({len(response.content)/1024:.1f} KB)")
-            print(f"[DEBUG] 📄 Content-Type: {response.headers.get('content-type', 'unknown')}")
-            print(f"[DEBUG] 🔄 开始解析图片数据...")
         
         # 直接从字节数据创建PIL Image
         parse_start = time.time()
@@ -93,12 +76,8 @@ def download_image_from_url(url: str, timeout: int = 30, debug: bool = False) ->
         parse_duration = time.time() - parse_start
         
         if debug:
-            print(f"[DEBUG] ✅ 图片解析成功!")
-            print(f"[DEBUG] ⏱️  解析耗时: {parse_duration:.2f} 秒")
-            print(f"[DEBUG] 🖼️  图片信息: {img.size} 像素, {img.mode} 模式")
-            
             total_duration = time.time() - start_time
-            print(f"[DEBUG] 🎯 下载完成，总耗时: {total_duration:.2f} 秒")
+            debug_log(f"Image download completed: {len(response.content)} bytes in {total_duration:.2f}s")
         
         return img
         
@@ -106,18 +85,14 @@ def download_image_from_url(url: str, timeout: int = 30, debug: bool = False) ->
         download_duration = time.time() - start_time
         error_msg = f"下载图片超时 (>{timeout}秒): {url}"
         if debug:
-            print(f"[DEBUG] ❌ 请求超时!")
-            print(f"[DEBUG] ⏱️  超时前耗时: {download_duration:.2f} 秒")
-            print(f"[DEBUG] 🔍 错误: {error_msg}")
+            debug_log(f"Download timeout after {download_duration:.2f}s: {url[:100]}...")
         raise ValueError(error_msg)
         
     except requests.exceptions.ConnectionError:
         download_duration = time.time() - start_time
         error_msg = f"无法连接到图片URL: {url}"
         if debug:
-            print(f"[DEBUG] ❌ 连接错误!")
-            print(f"[DEBUG] ⏱️  失败前耗时: {download_duration:.2f} 秒")
-            print(f"[DEBUG] 🔍 错误: {error_msg}")
+            debug_log(f"Connection error after {download_duration:.2f}s: {url[:100]}...")
         raise ValueError(error_msg)
         
     except requests.exceptions.HTTPError as e:
@@ -125,22 +100,14 @@ def download_image_from_url(url: str, timeout: int = 30, debug: bool = False) ->
         status_code = e.response.status_code if e.response else 'unknown'
         error_msg = f"HTTP错误 {status_code}: {url}"
         if debug:
-            print(f"[DEBUG] ❌ HTTP错误!")
-            print(f"[DEBUG] ⏱️  失败前耗时: {download_duration:.2f} 秒")
-            print(f"[DEBUG] 📊 HTTP状态码: {status_code}")
-            print(f"[DEBUG] 🔍 错误: {error_msg}")
-            if e.response and hasattr(e.response, 'text'):
-                print(f"[DEBUG] 📄 响应内容: {e.response.text[:200]}...")
+            debug_log(f"HTTP error {status_code} after {download_duration:.2f}s")
         raise ValueError(error_msg)
         
     except Exception as e:
         download_duration = time.time() - start_time
         error_msg = f"下载图片失败: {e}"
         if debug:
-            print(f"[DEBUG] ❌ 未知错误!")
-            print(f"[DEBUG] ⏱️  失败前耗时: {download_duration:.2f} 秒")
-            print(f"[DEBUG] 📋 错误类型: {type(e).__name__}")
-            print(f"[DEBUG] 🔍 错误详情: {str(e)}")
+            debug_log(f"Download failed after {download_duration:.2f}s: {type(e).__name__}")
         raise ValueError(error_msg)
 
 
@@ -161,6 +128,7 @@ class OpenAIImageNode:
                 "image_4": ("IMAGE",),
                 "size": ("STRING", {"default": "1024x1024"}),
                 "compatibility_mode": ("BOOLEAN", {"default": False, "tooltip": "启用兼容模式：通过chat端点实现图像生成，适用于OpenRouter等第三方服务"}),
+                "streaming": ("BOOLEAN", {"default": False, "tooltip": "启用流式输出（仅兼容模式有效）：实时接收响应数据，适用于支持streaming的chat端点"}),
                 "debug": ("BOOLEAN", {"default": False}),
             }
         }
@@ -170,7 +138,7 @@ class OpenAIImageNode:
     CATEGORY = "flexai"
 
     def generate_image(self, provider, model, prompt, image_1=None, image_2=None, 
-                      image_3=None, image_4=None, size="1024x1024", compatibility_mode=False, debug=False):
+                      image_3=None, image_4=None, size="1024x1024", compatibility_mode=False, streaming=False, debug=False):
         """生成或编辑图片
         - compatibility_mode=False: 使用OpenAI原生端点 (images.generate/images.edit)
         - compatibility_mode=True: 使用chat端点实现，兼容OpenRouter等第三方服务
@@ -183,11 +151,13 @@ class OpenAIImageNode:
                 provider_config.load_providers(force_reload=True)
                 prov = provider_config.get_provider_by_name(provider)
             if prov is None:
-                raise ValueError(f"未找到 provider: {provider}")
+                error_tensor = self._create_error_image(f"未找到 provider: {provider}")
+                return (error_tensor,)
             api_key = prov.api_key
             base_url = prov.base_url
             if not api_key or api_key.startswith("your_key"):
-                raise ValueError("API 密钥未配置或仍为占位符")
+                error_tensor = self._create_error_image("API 密钥未配置或仍为占位符")
+                return (error_tensor,)
 
             client = ensure_client(api_key, base_url)
             
@@ -195,57 +165,45 @@ class OpenAIImageNode:
             input_images = [image_1, image_2, image_3, image_4]
             active_images = [img for img in input_images if img is not None]
             
-            # 检查模型是否可能不支持图像生成
-            vision_only_patterns = ['image-preview', 'vision', 'claude-3', 'gpt-4-vision', 'gemini-pro-vision']
-            is_likely_vision_only = any(pattern in model.lower() for pattern in vision_only_patterns)
-            
             if compatibility_mode:
                 # 兼容模式：统一使用chat端点
                 if debug:
-                    if is_likely_vision_only:
-                        print(f"[DEBUG] ⚠️  注意: 模型 '{model}' 可能主要用于图像理解而非生成")
                     if active_images:
-                        print(f"[DEBUG] 兼容模式 - 使用chat端点进行图像编辑，处理 {len(active_images)} 张图片")
+                        debug_log(f"Compatibility mode - editing {len(active_images)} images")
                     else:
-                        print("[DEBUG] 兼容模式 - 使用chat端点进行图像生成")
-                result = self._chat_mode_image(client, model, prompt, active_images, size, debug)
+                        debug_log("Compatibility mode - generating image")
+                    if streaming:
+                        debug_log("Streaming mode enabled")
+                result = self._chat_mode_image(client, model, prompt, active_images, size, streaming, debug)
             else:
                 # 原生模式：使用OpenAI专用端点
+                if streaming and debug:
+                    debug_log("Warning: streaming not supported in native mode")
                 if active_images:
                     # 编辑模式：使用提供的图片进行编辑
                     if debug:
-                        print(f"[DEBUG] 原生模式 - 使用编辑端点 (images.edit)，处理 {len(active_images)} 张图片")
+                        debug_log(f"Native mode - editing {len(active_images)} images")
                     result = self._edit_images(client, model, prompt, active_images, size, debug)
                 else:
                     # 生成模式：纯文本生成
                     if debug:
-                        print("[DEBUG] 原生模式 - 使用生成端点 (images.generate)")
+                        debug_log("Native mode - generating image")
                     result = self._generate_image(client, model, prompt, size, debug)
             
             return (result,)
             
         except Exception as e:
             if debug:
-                import traceback
-                # 安全地打印错误信息，避免base64数据
-                error_str = str(e)
-                if len(error_str) > 500:
-                    error_str = f"{error_str[:250]}... [错误信息太长，已截断，总长度: {len(error_str)} 字符] ...{error_str[-250:]}"
-                print(f"[DEBUG] 错误: {error_str}")
-                traceback.print_exc()
+                debug_log(f"Error occurred: {str(e)[:200]}...")
             
             # 返回错误信息图片而不是抛出异常
-            return self._create_error_image(str(e))
+            error_tensor = self._create_error_image(str(e))
+            return (error_tensor,)
     
     def _generate_image(self, client, model, prompt, size, debug):
         """生成新图片"""
         if debug:
-            print("=" * 60)
-            print(f"[DEBUG] 🎨 开始图片生成流程")
-            print(f"[DEBUG] 📝 Prompt: {prompt}")
-            print(f"[DEBUG] 📐 尺寸: {size}")
-            print(f"[DEBUG] 🤖 模型: {model}")
-            print("=" * 60)
+            debug_log(f"Starting image generation: model={model}, size={size}")
         
         # 记录总体开始时间
         import time
@@ -257,33 +215,27 @@ class OpenAIImageNode:
             api_duration = time.time() - api_start
             
             if debug:
-                print(f"[DEBUG] ✅ generate_image_b64 调用完成，耗时: {api_duration:.2f} 秒")
+                debug_log(f"generate_image_b64 call completed, duration: {api_duration:.2f} seconds")
                 
         except Exception as e:
             api_duration = time.time() - api_start
             if debug:
-                print(f"[DEBUG] ❌ generate_image_b64 调用失败，耗时: {api_duration:.2f} 秒")
-                # 安全地打印错误信息，避免base64数据
-                error_str = str(e)
-                if len(error_str) > 500:
-                    error_str = f"{error_str[:250]}... [错误信息太长，已截断，总长度: {len(error_str)} 字符] ...{error_str[-250:]}"
-                print(f"[DEBUG] 🔍 错误: {error_str}")
-            raise e
+                debug_log(f"generate_image_b64 failed after {api_duration:.2f}s: {str(e)[:200]}...")
+            return self._create_error_image(f"图片生成API调用失败: {str(e)}")
         
         # 检查base64数据是否有效
         if not b64:
             if debug:
-                print("[DEBUG] ❌ generate_image_b64 返回空的base64数据")
-            raise ValueError("generate_image_b64 返回空的base64数据")
+                debug_log("Empty base64 data received")
+            return self._create_error_image("响应中没有图片数据，请重试")
             
         if not isinstance(b64, str):
             if debug:
-                print(f"[DEBUG] ❌ generate_image_b64 返回的不是字符串类型: {type(b64)}")
-            raise ValueError(f"generate_image_b64 返回的不是字符串类型，而是: {type(b64)}")
+                debug_log(f"Invalid base64 data type: {type(b64)}")
+            return self._create_error_image("响应数据格式异常，请重试")
         
         if debug:
-            print(f"[DEBUG] ✅ 收到有效的base64数据，长度: {len(b64)} 字符")
-            print(f"[DEBUG] 🔄 开始解码base64数据...")
+            debug_log(f"Received base64 data: length={len(b64)}")
         
         try:
             decode_start = time.time()
@@ -292,43 +244,27 @@ class OpenAIImageNode:
             decode_duration = time.time() - decode_start
             
             if debug:
-                print(f"[DEBUG] ✅ base64解码成功!")
-                print(f"[DEBUG] ⏱️  解码耗时: {decode_duration:.2f} 秒")
-                print(f"[DEBUG] 🖼️  最终图片: {img.size} {img.mode}")
+                debug_log("base64 decode successful")
+                debug_log(f"Decode duration: {decode_duration:.2f} seconds")
+                debug_log(f"Final image: {img.size} {img.mode}")
                 
                 total_duration = time.time() - total_start
-                print("=" * 60)
-                print(f"[DEBUG] 🎉 图片生成流程完成!")
-                print(f"[DEBUG] ⏱️  总耗时: {total_duration:.2f} 秒")
-                print(f"[DEBUG]    ├─ API调用: {api_duration:.2f} 秒")
-                print(f"[DEBUG]    └─ 数据解码: {decode_duration:.2f} 秒")
-                print("=" * 60)
+                debug_log(f"Image generation completed: total={total_duration:.2f}s, api={api_duration:.2f}s, decode={decode_duration:.2f}s")
                 
             return tensor
             
         except Exception as e:
             decode_duration = time.time() - decode_start
             if debug:
-                print(f"[DEBUG] ❌ base64解码失败!")
-                print(f"[DEBUG] ⏱️  失败前耗时: {decode_duration:.2f} 秒")
-                # 安全地打印错误信息，避免base64数据
-                error_str = str(e)
-                if len(error_str) > 500:
-                    error_str = f"{error_str[:250]}... [错误信息太长，已截断，总长度: {len(error_str)} 字符] ...{error_str[-250:]}"
-                print(f"[DEBUG] 🔍 错误: {error_str}")
-                print(f"[DEBUG] 📋 base64数据前100字符: {b64[:100] if len(b64) > 100 else b64}")
-            raise ValueError(f"base64图像数据解码失败: {e}")
+                debug_log(f"Base64 decode failed after {decode_duration:.2f}s: {str(e)[:200]}...")
+            return self._create_error_image(f"base64图像数据解码失败: {str(e)}")
     
     def _edit_images(self, client, model, prompt, input_images, size, debug):
         """编辑多张图片（1-4张）"""
         if debug:
-            print("=" * 60)
-            print(f"[DEBUG] ✏️  开始图片编辑流程")
-            print(f"[DEBUG] 📝 Prompt: {prompt}")
-            print(f"[DEBUG] 📐 尺寸: {size}")
-            print(f"[DEBUG] 🤖 模型: {model}")
-            print(f"[DEBUG] 🖼️  输入图片数量: {len(input_images)}")
-            print("=" * 60)
+            debug_log(f"Starting image editing: {len(input_images)} images, size={size}")
+            debug_log(f"Model: {model}")
+            debug_log(f"Input images count: {len(input_images)}")
         
         # 记录总体开始时间
         import time
@@ -337,16 +273,13 @@ class OpenAIImageNode:
         try:
             # 处理输入图片，转换为文件对象列表
             if debug:
-                print(f"[DEBUG] 🔄 开始处理输入图片...")
+                debug_log("Starting to process input images...")
                 
             process_start = time.time()
             image_files = []
             
             for i, img_tensor in enumerate(input_images, 1):
                 try:
-                    if debug:
-                        print(f"[DEBUG] 📷 处理第 {i} 张图片...")
-                        
                     if img_tensor.ndim == 4 and img_tensor.shape[0] >= 1:
                         img_tensor = img_tensor[0]
                     
@@ -355,7 +288,7 @@ class OpenAIImageNode:
                     # 转换为RGBA格式（某些 edit API 可能需要）
                     if pil_img.mode not in ['RGB', 'RGBA']:
                         if debug:
-                            print(f"[DEBUG]    转换颜色模式: {pil_img.mode} -> RGB")
+                            debug_log(f"Converting color mode: {pil_img.mode} -> RGB")
                         pil_img = pil_img.convert('RGB')
                     
                     # 转换为字节流
@@ -363,37 +296,32 @@ class OpenAIImageNode:
                     pil_img.save(img_bytes, format='PNG')
                     img_bytes.seek(0)
                     image_files.append(img_bytes)
-                    
-                    if debug:
-                        file_size = len(img_bytes.getvalue())
-                        print(f"[DEBUG]    ✅ 第 {i} 张图片处理完成: {pil_img.size} {pil_img.mode}, 文件大小: {file_size:,} 字节")
                         
                 except Exception as e:
                     if debug:
                         # 安全地打印错误信息，避免base64数据
                         error_str = str(e)
                         if len(error_str) > 200:
-                            error_str = f"{error_str[:100]}... [错误太长，已截断，总长度: {len(error_str)} 字符] ...{error_str[-100:]}"
-                        print(f"[DEBUG]    ❌ 跳过无法处理的第 {i} 张图片: {error_str}")
+                            error_str = f"{error_str[:100]}... [error too long, truncated, total length: {len(error_str)} chars] ...{error_str[-100:]}"
+                        debug_log(f"Skipping unprocessable image {i}: {error_str}")
                     continue
             
             process_duration = time.time() - process_start
             
             if debug:
-                print(f"[DEBUG] ✅ 图片预处理完成，耗时: {process_duration:.2f} 秒")
-                print(f"[DEBUG] 📊 成功处理 {len(image_files)} 张图片")
+                debug_log(f"Image preprocessing completed, duration: {process_duration:.2f} seconds")
+                debug_log(f"Successfully processed {len(image_files)} images")
             
             if not image_files:
                 if debug:
-                    print(f"[DEBUG] ❌ 没有有效的图片可以处理")
-                raise RuntimeError("没有有效的图片可以处理")
+                    debug_log("No valid images to process")
+                return self._create_error_image("没有有效的图片可以处理")
             
             # 调用 OpenAI images.edit API
             if debug:
-                print("=" * 60)
-                print(f"[DEBUG] 🚀 开始图片编辑请求")
-                print(f"[DEBUG] ⏰ 请求时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
-                print(f"[DEBUG] 📝 提交到OpenAI Images Edit API的参数:")
+                debug_log("Starting image editing request")
+                debug_log(f"Request time: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+                debug_log("Parameters submitted to OpenAI Images Edit API:")
                 # 打印API调用参数（不包含二进制图片数据）
                 import json
                 debug_params = {
@@ -406,15 +334,11 @@ class OpenAIImageNode:
                 }
                 try:
                     truncated_params = _truncate_base64_in_dict(debug_params)
-                    print(json.dumps(truncated_params, ensure_ascii=False, indent=2))
+                    debug_log(f"API parameters: {json.dumps(truncated_params, ensure_ascii=False, indent=2)}")
                 except Exception as e:
-                    print(f"JSON序列化失败: {e}")
-                    truncated_params = _truncate_base64_in_dict(debug_params)
-                    print(f"原始参数: {truncated_params}")
-                print("=" * 60)
-                print("[DEBUG] 📡 正在发送API请求...")
-                print("[DEBUG] ⚠️  注意: OpenAI图片编辑是同步API，需要等待完整处理后返回")
-                print("[DEBUG] 💡 编辑时间通常在15-90秒之间，请耐心等待...")
+                    debug_log(f"Parameter serialization failed: {e}")
+                
+                debug_log("Sending API request (image editing may take 15-90 seconds)...")
             
             # 记录请求开始时间
             import time
@@ -432,34 +356,32 @@ class OpenAIImageNode:
                 request_duration = time.time() - start_time
                 
                 if debug:
-                    print(f"[DEBUG] ✅ API请求成功完成!")
-                    print(f"[DEBUG] ⏱️  总耗时: {request_duration:.2f} 秒")
+                    debug_log("API request completed successfully!")
+                    debug_log(f"Total duration: {request_duration:.2f} seconds")
                     # 安全地检查response.data是否存在
                     if response.data is not None:
-                        print(f"[DEBUG] 📊 返回 {len(response.data)} 张图片")
+                        debug_log(f"Returned {len(response.data)} images")
                     else:
-                        print(f"[DEBUG] ⚠️  响应中没有data字段或data为空")
+                        debug_log("No data field in response or data is empty")
                     
             except Exception as api_error:
                 request_duration = time.time() - start_time
                 if debug:
-                    print(f"[DEBUG] ❌ API请求失败!")
-                    print(f"[DEBUG] ⏱️  失败前耗时: {request_duration:.2f} 秒")
-                    print(f"[DEBUG] 📋 错误类型: {type(api_error).__name__}")
-                    print(f"[DEBUG] 🔍 错误详情: {str(api_error)}")
-                raise api_error
+                    debug_log("API request failed!")
+                    debug_log(f"Duration before failure: {request_duration:.2f} seconds")
+                    debug_log(f"Error type: {type(api_error).__name__}")
+                    debug_log(f"Error details: {str(api_error)}")
+                return self._create_error_image(f"图片编辑API调用失败: {str(api_error)}")
             
             if debug:
-                print("=" * 60)
-                print("[DEBUG] 📨 分析API响应数据:")
-                print(f"[DEBUG] 📊 响应对象类型: {type(response)}")
+                debug_log(f"Analyzing API response: {type(response)}")
                 # 打印API返回的JSON数据
                 import json
                 try:
                     resp_dict = response.model_dump() if hasattr(response, 'model_dump') else str(response)
                     if isinstance(resp_dict, dict):
                         # 打印完整的响应对象JSON体
-                        print("[DEBUG] 🔍 完整响应对象JSON体:")
+                        debug_log("Complete response object JSON body:")
                         complete_resp = resp_dict.copy()
                         # 为了可读性，如果base64数据太长，截取前100和后100字符
                         if 'data' in complete_resp and isinstance(complete_resp['data'], list):
@@ -469,35 +391,34 @@ class OpenAIImageNode:
                                     for field in ['b64_json', 'b64', 'base64']:
                                         if field in complete_item and isinstance(complete_item[field], str) and len(complete_item[field]) > 200:
                                             b64_data = complete_item[field]
-                                            complete_item[field] = f"{b64_data[:100]}...{b64_data[-100:]} [完整长度: {len(b64_data)} 字符]"
+                                            complete_item[field] = f"{b64_data[:100]}...{b64_data[-100:]} [full length: {len(b64_data)} chars]"
                                     complete_resp['data'][i] = complete_item
-                        print(json.dumps(complete_resp, ensure_ascii=False, indent=2))
+                        debug_log(f"Complete response: {json.dumps(complete_resp, ensure_ascii=False, indent=2)}")
                     else:
                         truncated_dict = _truncate_base64_in_dict(resp_dict)
-                        print(truncated_dict)
+                        debug_log(f"Truncated response: {truncated_dict}")
                 except Exception as e:
-                    print(f"JSON序列化失败: {e}")
+                    debug_log(f"JSON serialization failed: {e}")
                     # 安全地打印响应信息，避免base64数据
                     response_str = str(response)
                     if len(response_str) > 500:
-                        response_str = f"{response_str[:200]}... [响应太长，已截断，总长度: {len(response_str)} 字符] ...{response_str[-200:]}"
-                    print(f"原始响应: {response_str}")
+                        response_str = f"{response_str[:200]}... [response too long, truncated, total length: {len(response_str)} chars] ...{response_str[-200:]}"
+                    debug_log(f"Raw response: {response_str}")
                     # 如果JSON序列化失败，尝试打印响应对象的属性
                     if hasattr(response, '__dict__'):
                         response_dict = response.__dict__
                         truncated_dict = _truncate_base64_in_dict(response_dict)
-                        print(f"[DEBUG] 响应对象属性: {truncated_dict}")
+                        debug_log(f"Response object attributes: {truncated_dict}")
                     else:
                         available_attrs = [attr for attr in dir(response) if not attr.startswith('_')]
-                        print(f"[DEBUG] 响应可用属性: {available_attrs}")
-                print("=" * 60)
-            
-            # 解析响应
-            if response.data is not None and len(response.data) > 0:
-                if debug:
-                    print(f"[DEBUG] 🔍 开始解析响应数据...")
-                    
-                first_item = response.data[0]
+                        debug_log(f"Available response attributes: {available_attrs}")
+                
+                # 解析响应
+                if response.data is not None and len(response.data) > 0:
+                    if debug:
+                        debug_log("Starting to parse response data...")
+                        
+                    first_item = response.data[0]
                 
                 # 尝试获取base64数据，支持不同的字段名
                 b64_data = None
@@ -509,17 +430,17 @@ class OpenAIImageNode:
                             b64_data = field_value
                             found_field = attr_name
                             if debug:
-                                print(f"[DEBUG] ✅ 在字段 '{attr_name}' 中找到base64数据")
-                                print(f"[DEBUG] 📏 数据长度: {len(b64_data)} 字符")
-                                print(f"[DEBUG] 🔤 数据类型: {type(b64_data)}")
+                                debug_log(f"Found base64 data in field '{attr_name}'")
+                                debug_log(f"Data length: {len(b64_data)} characters")
+                                debug_log(f"Data type: {type(b64_data)}")
                             break
                 
                 if not b64_data:
                     # 检查是否有URL字段，支持URL响应
                     if hasattr(first_item, 'url') and first_item.url:
                         if debug:
-                            print(f"[DEBUG] 🌐 未找到base64数据，开始从URL下载")
-                            print(f"[DEBUG] 🔗 图片URL: {first_item.url}")
+                            debug_log("No base64 data found, starting URL download")
+                            debug_log(f"Image URL: {first_item.url}")
                         
                         try:
                             # 从URL下载图片
@@ -528,8 +449,8 @@ class OpenAIImageNode:
                             download_duration = time.time() - download_start
                             
                             if debug:
-                                print(f"[DEBUG] ✅ URL下载完成，耗时: {download_duration:.2f}秒")
-                                print(f"[DEBUG] 🖼️  图片信息: {img.size} {img.mode}")
+                                debug_log(f"URL download completed, duration: {download_duration:.2f} seconds")
+                                debug_log(f"Image info: {img.size} {img.mode}")
                             
                             tensor = pil_to_tensor(img)
                             return tensor
@@ -538,23 +459,23 @@ class OpenAIImageNode:
                                 # 安全地打印错误信息，避免base64数据
                                 error_str = str(e)
                                 if len(error_str) > 500:
-                                    error_str = f"{error_str[:250]}... [错误太长，已截断，总长度: {len(error_str)} 字符] ...{error_str[-250:]}"
-                                print(f"[DEBUG] ❌ URL下载失败: {error_str}")
-                            raise ValueError(f"从URL下载图片失败: {e}")
+                                    error_str = f"{error_str[:250]}... [error too long, truncated, total length: {len(error_str)} chars] ...{error_str[-250:]}"
+                                debug_log(f"URL download failed: {error_str}")
+                            return self._create_error_image(f"从URL下载图片失败: {str(e)}")
                     else:
                         available_attrs = [attr for attr in dir(first_item) if not attr.startswith('_')]
                         if debug:
-                            print(f"[DEBUG] ❌ 未找到有效的base64或URL数据")
-                            print(f"[DEBUG] 📋 可用属性: {available_attrs}")
-                        raise ValueError(f"images.edit 未返回有效的base64数据或URL，可用属性: {available_attrs}")
+                            debug_log("No valid base64 or URL data found")
+                            debug_log(f"Available attributes: {available_attrs}")
+                        return self._create_error_image("响应中没有图片数据，请重试")
                 
                 if debug:
-                    print(f"[DEBUG] 🔍 开始验证并解码base64数据...")
+                    debug_log("Starting base64 data validation and decoding...")
                     
                 if not isinstance(b64_data, str):
                     if debug:
-                        print(f"[DEBUG] ❌ base64数据类型错误: 期望str，实际{type(b64_data)}")
-                    raise ValueError(f"base64数据类型错误，期望字符串，实际: {type(b64_data)}")
+                        debug_log(f"Base64 data type error: expected str, got {type(b64_data)}")
+                    return self._create_error_image(f"base64数据格式错误，期望字符串，实际: {type(b64_data)}")
                 
                 try:
                     decode_start = time.time()
@@ -563,16 +484,14 @@ class OpenAIImageNode:
                     decode_duration = time.time() - decode_start
                     
                     if debug:
-                        print(f"[DEBUG] ✅ base64解码成功!")
-                        print(f"[DEBUG] ⏱️  解码耗时: {decode_duration:.2f} 秒")
-                        print(f"[DEBUG] 🖼️  生成图片信息: {img.size} {img.mode}")
+                        debug_log("Base64 decode successful!")
+                        debug_log(f"Decode duration: {decode_duration:.2f} seconds")
+                        debug_log(f"Generated image info: {img.size} {img.mode}")
                         
                         total_duration = time.time() - start_time
-                        print("=" * 60)
-                        print(f"[DEBUG] 🎉 图片编辑完成!")
-                        print(f"[DEBUG] ⏱️  总处理时间: {total_duration:.2f} 秒")
-                        print(f"[DEBUG] 📦 数据来源: {found_field}")
-                        print("=" * 60)
+                        debug_log("Image editing completed!")
+                        debug_log(f"Total processing time: {total_duration:.2f} seconds")
+                        debug_log(f"Data source: {found_field}")
                     
                     return tensor
                 except Exception as e:
@@ -580,33 +499,33 @@ class OpenAIImageNode:
                         # 安全地打印错误信息，避免base64数据
                         error_str = str(e)
                         if len(error_str) > 500:
-                            error_str = f"{error_str[:250]}... [错误太长，已截断，总长度: {len(error_str)} 字符] ...{error_str[-250:]}"
-                        print(f"[DEBUG] ❌ base64解码失败: {error_str}")
-                        print(f"[DEBUG] 🔍 base64数据前100字符: {b64_data[:100] if len(b64_data) > 100 else b64_data}")
+                            error_str = f"{error_str[:250]}... [error too long, truncated, total length: {len(error_str)} chars] ...{error_str[-250:]}"
+                        debug_log(f"Base64 decode failed: {error_str}")
+                        debug_log(f"First 100 chars of base64 data: {b64_data[:100] if len(b64_data) > 100 else b64_data}")
                     raise ValueError(f"base64图像数据解码失败: {e}")
             else:
                 if debug:
-                    print(f"[DEBUG] ❌ API返回空响应或无数据")
-                    print(f"[DEBUG] 🔍 响应对象类型: {type(response)}")
+                    debug_log("API returned empty response or no data")
+                    debug_log(f"Response object type: {type(response)}")
                     # 安全地打印response.data信息
                     if hasattr(response, 'data') and response.data:
                         if isinstance(response.data, list):
-                            print(f"[DEBUG] 🔍 response.data 长度: {len(response.data)} 个元素")
+                            debug_log(f"response.data length: {len(response.data)} elements")
                         else:
                             data_str = str(response.data)
                             if len(data_str) > 200:
-                                data_str = f"{data_str[:100]}... [数据太长，已截断，总长度: {len(data_str)} 字符] ...{data_str[-100:]}"
-                            print(f"[DEBUG] 🔍 response.data 值: {data_str}")
+                                data_str = f"{data_str[:100]}... [data too long, truncated, total length: {len(data_str)} chars] ...{data_str[-100:]}"
+                            debug_log(f"response.data value: {data_str}")
                     else:
-                        print(f"[DEBUG] 🔍 response.data: 无数据或为空")
-                    print(f"[DEBUG] 🔍 response.data 类型: {type(response.data) if hasattr(response, 'data') else 'No data attribute'}")
+                        debug_log("response.data: no data or empty")
+                    debug_log(f"response.data type: {type(response.data) if hasattr(response, 'data') else 'No data attribute'}")
                     
                     # 尝试获取响应的所有属性
                     if hasattr(response, '__dict__'):
-                        print(f"[DEBUG] 🔍 响应对象属性: {list(response.__dict__.keys())}")
+                        debug_log(f"Response object attributes: {list(response.__dict__.keys())}")
                     else:
                         available_attrs = [attr for attr in dir(response) if not attr.startswith('_')]
-                        print(f"[DEBUG] 🔍 响应可用属性: {available_attrs}")
+                        debug_log(f"Available response attributes: {available_attrs}")
                 
                 raise RuntimeError("API 返回空响应或无数据")
             
@@ -615,7 +534,7 @@ class OpenAIImageNode:
             if "safety system" in str(e).lower():
                 error_msg += "\n提示: 请尝试调整提示词或使用其他图片，避免可能违反安全策略的内容"
             if debug:
-                print(f"[DEBUG] {error_msg}")
+                debug_log(error_msg)
             raise RuntimeError(error_msg)
         finally:
             # 清理文件对象
@@ -625,19 +544,16 @@ class OpenAIImageNode:
                 except:
                     pass
     
-    def _chat_mode_image(self, client, model, prompt, input_images, size, debug):
+    def _chat_mode_image(self, client, model, prompt, input_images, size, streaming, debug):
         """兼容模式：通过chat端点实现图像生成/编辑"""
         if debug:
-            print("=" * 60)
-            print(f"[DEBUG] 🔄 开始兼容模式图像处理")
-            print(f"[DEBUG] 📝 Prompt: {prompt}")
-            print(f"[DEBUG] 📐 尺寸: {size}")
-            print(f"[DEBUG] 🤖 模型: {model}")
+            debug_log(f"Starting compatibility mode image processing: model={model}, streaming={streaming}")
+            debug_log(f"Prompt: {prompt[:100]}...")
+            debug_log(f"Size: {size}")
             if input_images:
-                print(f"[DEBUG] 🖼️  输入图片数量: {len(input_images)} (编辑模式)")
+                debug_log(f"Input images: {len(input_images)} (edit mode)")
             else:
-                print(f"[DEBUG] 🎨 纯文本生成模式")
-            print("=" * 60)
+                debug_log("Text-only generation mode")
         
         import time
         total_start = time.time()
@@ -662,12 +578,12 @@ class OpenAIImageNode:
             # 如果有输入图片，添加到消息中
             if input_images:
                 if debug:
-                    print(f"[DEBUG] 🔄 处理输入图片转换为base64...")
+                    debug_log("Processing input images to base64...")
                     
                 for i, img_tensor in enumerate(input_images, 1):
                     try:
                         if debug:
-                            print(f"[DEBUG] 📷 处理第 {i} 张图片...")
+                            debug_log(f"Processing image {i}/{len(input_images)}")
                             
                         if img_tensor.ndim == 4 and img_tensor.shape[0] >= 1:
                             img_tensor = img_tensor[0]
@@ -681,7 +597,7 @@ class OpenAIImageNode:
                             new_size = tuple(int(dim * ratio) for dim in pil_img.size)
                             pil_img = pil_img.resize(new_size, Image.Resampling.LANCZOS)
                             if debug:
-                                print(f"[DEBUG]    图片已缩放至: {new_size}")
+                                debug_log(f"Image resized to: {new_size}")
                         
                         # 转换为base64 (pil_to_base64返回完整的data URI)
                         img_base64 = pil_to_base64(pil_img)
@@ -694,15 +610,11 @@ class OpenAIImageNode:
                         })
                         
                         if debug:
-                            print(f"[DEBUG]    ✅ 第 {i} 张图片已转换为base64")
+                            debug_log(f"Image {i} converted to base64 successfully")
                             
                     except Exception as e:
                         if debug:
-                            # 安全地打印错误信息，避免base64数据
-                            error_str = str(e)
-                            if len(error_str) > 300:
-                                error_str = f"{error_str[:150]}... [错误太长，已截断，总长度: {len(error_str)} 字符] ...{error_str[-150:]}"
-                            print(f"[DEBUG] ❌ 处理第 {i} 张图片失败: {error_str}")
+                            debug_log(f"Failed to process image {i}: {str(e)[:100]}...")
                         continue
             
             # 构建聊天消息
@@ -712,28 +624,8 @@ class OpenAIImageNode:
             }]
             
             if debug:
-                import json
-                print("[DEBUG] 📡 发送chat请求...")
-                print("[DEBUG] 📝 请求消息结构:")
-                # 创建调试用的消息副本（隐藏base64数据）
-                debug_messages = []
-                for msg in messages:
-                    debug_msg = {"role": msg["role"]}
-                    if isinstance(msg["content"], list):
-                        debug_content = []
-                        for item in msg["content"]:
-                            if item["type"] == "text":
-                                debug_content.append(item)
-                            elif item["type"] == "image_url":
-                                debug_content.append({
-                                    "type": "image_url",
-                                    "image_url": {"url": "<base64_image_data>"}
-                                })
-                        debug_msg["content"] = debug_content
-                    else:
-                        debug_msg["content"] = msg["content"]
-                    debug_messages.append(debug_msg)
-                print(json.dumps(debug_messages, ensure_ascii=False, indent=2))
+                debug_log("Sending chat request...")
+                debug_log(f"Request messages structure: {len(messages)} messages")
             
             # 调用chat API
             api_start = time.time()
@@ -745,20 +637,21 @@ class OpenAIImageNode:
                 top_p=1.0,
                 max_tokens=4000,
                 seed=None,
-                stream=False,
+                stream=streaming,
                 include_usage=True,
                 debug=debug
             )
             api_duration = time.time() - api_start
             
             if debug:
-                print(f"[DEBUG] ✅ Chat API调用完成，耗时: {api_duration:.2f} 秒")
+                mode_str = "streaming" if streaming else "non-streaming"
+                debug_log(f"Chat API call completed ({mode_str}), duration: {api_duration:.2f}s")
             
             # 解析响应
             if response:
                 if debug:
                     content = response.get("content", "")
-                    print(f"[DEBUG] 📨 收到响应内容长度: {len(content) if content else 0} 字符")
+                    debug_log(f"Received response content length: {len(content) if content else 0} characters")
                 
                 # 尝试多种方式解析图像数据 - 传入原始响应或处理过的响应
                 raw_response = response.get("_raw_response")
@@ -777,57 +670,61 @@ class OpenAIImageNode:
                 
                 if image_data:
                     if debug:
-                        print(f"[DEBUG] ✅ 成功从响应中提取图像数据")
+                        debug_log("Successfully extracted image data from response")
                     
                     # 转换为tensor
                     decode_start = time.time()
-                    if image_data.startswith('http'):
-                        # URL格式
-                        pil_img = download_image_from_url(image_data, debug=debug)
-                    else:
-                        # Base64格式
-                        img = Image.open(BytesIO(base64.b64decode(image_data)))
-                        pil_img = img
+                    try:
+                        if image_data.startswith('http'):
+                            # URL格式
+                            pil_img = download_image_from_url(image_data, debug=debug)
+                        else:
+                            # Base64格式
+                            img = Image.open(BytesIO(base64.b64decode(image_data)))
+                            pil_img = img
+                    except Exception as e:
+                        if debug:
+                            error_str = str(e)
+                            if len(error_str) > 500:
+                                error_str = f"{error_str[:250]}... [错误太长，已截断，总长度: {len(error_str)} 字符] ...{error_str[-250:]}"
+                            debug_log(f"Image data processing failed: {error_str}")
+                        return self._create_error_image(f"图像数据处理失败: {str(e)}")
                     
                     tensor = pil_to_tensor(pil_img)
                     decode_duration = time.time() - decode_start
                     
                     total_duration = time.time() - total_start
                     if debug:
-                        print("=" * 60)
-                        print(f"[DEBUG] 🎉 兼容模式图像处理完成!")
-                        print(f"[DEBUG] ⏱️  总耗时: {total_duration:.2f} 秒")
-                        print(f"[DEBUG]    ├─ API调用: {api_duration:.2f} 秒")
-                        print(f"[DEBUG]    └─ 图像解析: {decode_duration:.2f} 秒")
-                        print(f"[DEBUG] 🖼️  最终图片: {pil_img.size} {pil_img.mode}")
-                        print("=" * 60)
+                        debug_log("Compatible mode image processing completed!")
+                        debug_log(f"Total duration: {total_duration:.2f} seconds")
+                        debug_log(f"API call: {api_duration:.2f} seconds")
+                        debug_log(f"Image parsing: {decode_duration:.2f} seconds")
+                        debug_log(f"Final image: {pil_img.size} {pil_img.mode}")
                     
                     return tensor
                 else:
                     if debug:
-                        print(f"[DEBUG] ❌ 未能从响应中提取图像数据")
-                        print(f"[DEBUG] 📄 原始响应内容: {content[:500]}...")
-                        print(f"[DEBUG] 💡 提示: 模型 '{model}' 可能不支持图像生成，仅支持图像理解")
+                        debug_log("Failed to extract image data from response")
+                        debug_log(f"Raw response content: {content[:500]}...")
                     
                     # 创建一个包含错误信息的图片，而不是抛出异常
-                    error_msg = f"模型 '{model}' 不支持图像生成\n\n模型响应:\n{content[:200]}{'...' if len(content) > 200 else ''}"
-                    return self._create_error_image(error_msg)
+                    return self._create_error_image("响应中没有图片数据，请重试")
             else:
                 if debug:
-                    print(f"[DEBUG] ❌ 聊天API返回空响应")
-                return self._create_error_image("聊天API返回空响应")
+                    debug_log("Chat API returned empty response")
+                return self._create_error_image("响应中没有图片数据，请重试")
                 
         except Exception as e:
             total_duration = time.time() - total_start
             if debug:
-                print(f"[DEBUG] ❌ 兼容模式处理失败!")
-                print(f"[DEBUG] ⏱️  失败前耗时: {total_duration:.2f} 秒")
+                debug_log("Compatible mode processing failed!")
+                debug_log(f"Duration before failure: {total_duration:.2f} seconds")
                 # 安全地打印错误信息，避免base64数据
                 error_str = str(e)
                 if len(error_str) > 500:
-                    error_str = f"{error_str[:250]}... [错误信息太长，已截断，总长度: {len(error_str)} 字符] ...{error_str[-250:]}"
-                print(f"[DEBUG] 🔍 错误: {error_str}")
-            raise e
+                    error_str = f"{error_str[:250]}... [error message too long, truncated, total length: {len(error_str)} chars] ...{error_str[-250:]}"
+                debug_log(f"Error: {error_str}")
+            return self._create_error_image(f"兼容模式处理失败: {str(e)}")
     
     def _extract_image_from_chat_response(self, response, debug=False):
         """从chat响应中提取图像数据（URL或base64）"""
@@ -837,38 +734,144 @@ class OpenAIImageNode:
         import re
         import base64
         
+        if debug:
+            debug_log(f"Starting image data extraction from response...")
+            debug_log(f"Response type: {type(response)}")
+            if isinstance(response, dict):
+                debug_log(f"Response fields: {list(response.keys())}")
+        
         # 首先尝试从响应结构中直接提取图像（新格式）
         # 检查是否有 images 字段（某些API返回的格式）
         if isinstance(response, dict):
             # 尝试从不同的可能位置提取图像
             images_data = None
             
-            # 检查是否有 images 字段
-            if "images" in response:
+            # 优先检查经过chat_complete处理后的images字段（流式聚合后的结果）
+            if "images" in response and response["images"]:
                 images_data = response["images"]
-            # 检查是否有 choices[0].message.images
+                if debug:
+                    debug_log(f"Found images field at response top level: {type(images_data)} (length: {len(images_data) if isinstance(images_data, list) else 'N/A'})")
+            
+            # 检查是否有 choices[0].message.images (原始响应格式)
             elif "choices" in response and response["choices"]:
                 message = response["choices"][0].get("message", {})
                 if "images" in message:
                     images_data = message["images"]
+                    if debug:
+                        debug_log(f"Found images field in choices[0].message: {type(images_data)}")
+                        
+            # 如果还是没找到，打印调试信息看看response结构
+            else:
+                if debug:
+                    debug_log("No images field found in expected locations")
+                    debug_log(f"Response top-level fields: {list(response.keys()) if isinstance(response, dict) else 'not dict'}")
+                    if isinstance(response, dict) and "choices" in response and response["choices"]:
+                        message = response["choices"][0].get("message", {})
+                        debug_log(f"Message fields: {list(message.keys()) if isinstance(message, dict) else 'not dict'}")
             
-            if images_data and isinstance(images_data, list) and len(images_data) > 0:
-                first_image = images_data[0]
-                if isinstance(first_image, dict):
-                    # 检查 image_url.url 字段
-                    if "image_url" in first_image and "url" in first_image["image_url"]:
-                        url = first_image["image_url"]["url"]
-                        if url.startswith("data:image"):
-                            # 提取base64部分
-                            if "base64," in url:
+            # 🔧 处理找到的images数据
+            if images_data:
+                if debug:
+                    debug_log(f"Starting to process images data: {type(images_data)}")
+                    
+                # 如果images_data是列表
+                if isinstance(images_data, list) and len(images_data) > 0:
+                    first_image = images_data[0]
+                    if debug:
+                        debug_log(f"First image item type: {type(first_image)}")
+                        if isinstance(first_image, dict):
+                            debug_log(f"First image item fields: {list(first_image.keys())}")
+                    
+                    if isinstance(first_image, dict):
+                        # 检查 image_url.url 字段 (OpenRouter/Gemini格式)
+                        if "image_url" in first_image and "url" in first_image["image_url"]:
+                            url = first_image["image_url"]["url"]
+                            if debug:
+                                debug_log(f"Found image_url.url field: {url[:100]}..." if len(url) > 100 else f"Found image_url.url field: {url}")
+                            
+                            if url.startswith("data:image"):
+                                # 提取base64部分
+                                if "base64," in url:
+                                    base64_data = url.split("base64,", 1)[1]
+                                    if debug:
+                                        debug_log(f"Found base64 data from images field, length: {len(base64_data)}")
+                                    return base64_data
+                            else:
+                                if debug:
+                                    debug_log(f"Found URL from images field: {url[:100]}...")
+                                return url
+                        
+                        # 检查直接的url字段
+                        elif "url" in first_image:
+                            url = first_image["url"]
+                            if debug:
+                                debug_log(f"Found direct url field: {url[:100]}...")
+                            
+                            if url.startswith("data:image") and "base64," in url:
                                 base64_data = url.split("base64,", 1)[1]
                                 if debug:
-                                    print(f"[DEBUG] 🎯 从images字段找到base64数据，长度: {len(base64_data)}")
+                                    debug_log(f"Found base64 data from url field, length: {len(base64_data)}")
                                 return base64_data
-                        else:
+                            else:
+                                if debug:
+                                    debug_log(f"Found URL from url field: {url[:100]}...")
+                                return url
+                        
+                        # 检查其他可能的字段名
+                        for field in ["data", "content", "base64"]:
+                            if field in first_image and first_image[field]:
+                                data = first_image[field]
+                                if debug:
+                                    debug_log(f"Found {field} field: {type(data)}")
+                                
+                                if isinstance(data, str) and len(data) > 100:
+                                    try:
+                                        # 尝试验证为base64
+                                        base64.b64decode(data)
+                                        if debug:
+                                            debug_log(f"Found valid base64 data from {field} field, length: {len(data)}")
+                                        return data
+                                    except:
+                                        pass
+                    
+                    elif isinstance(first_image, str):
+                        # 如果直接是字符串（可能是base64或URL）
+                        if debug:
+                            debug_log(f"Image item is string, length: {len(first_image)}")
+                        
+                        if first_image.startswith("data:image") and "base64," in first_image:
+                            base64_data = first_image.split("base64,", 1)[1]
                             if debug:
-                                print(f"[DEBUG] 🔗 从images字段找到URL: {url}")
-                            return url
+                                debug_log(f"Found base64 data from string, length: {len(base64_data)}")
+                            return base64_data
+                        elif first_image.startswith("http"):
+                            if debug:
+                                debug_log(f"Found URL from string: {first_image[:100]}...")
+                            return first_image
+                        elif len(first_image) > 100:
+                            try:
+                                # 尝试验证为base64
+                                base64.b64decode(first_image)
+                                if debug:
+                                    debug_log(f"String is valid base64, length: {len(first_image)}")
+                                return first_image
+                            except:
+                                pass
+                
+                elif isinstance(images_data, str):
+                    # 如果images_data直接是字符串
+                    if debug:
+                        debug_log(f"images_data is string, length: {len(images_data)}")
+                    
+                    if images_data.startswith("data:image") and "base64," in images_data:
+                        base64_data = images_data.split("base64,", 1)[1]
+                        if debug:
+                            debug_log(f"Found base64 data from images_data string, length: {len(base64_data)}")
+                        return base64_data
+                    elif images_data.startswith("http"):
+                        if debug:
+                            debug_log(f"Found URL from images_data string: {images_data}")
+                        return images_data
         
         # 如果没有找到，继续从content文本中搜索
         content = ""
@@ -886,8 +889,11 @@ class OpenAIImageNode:
             
         if not content:
             if debug:
-                print(f"[DEBUG] ❌ 响应中没有content字段或images字段")
+                debug_log("No content or images field in response")
             return None
+        
+        if debug:
+            debug_log(f"Searching for image data in content, content length: {len(content)}")
         
         # 尝试提取base64格式的图像
         base64_patterns = [
@@ -907,7 +913,7 @@ class OpenAIImageNode:
                         # 验证base64格式
                         base64.b64decode(clean_match)
                         if debug:
-                            print(f"[DEBUG] 🎯 从content找到base64数据，长度: {len(clean_match)}")
+                            debug_log(f"Found base64 data from content, length: {len(clean_match)}")
                         return clean_match
                     except Exception:
                         continue
@@ -925,11 +931,11 @@ class OpenAIImageNode:
             for match in matches:
                 url = match if isinstance(match, str) else match[0] if isinstance(match, tuple) else str(match)
                 if debug:
-                    print(f"[DEBUG] 🔗 从content找到URL: {url}")
+                    debug_log(f"Found URL from content: {url}")
                 return url
         
         if debug:
-            print(f"[DEBUG] ❌ 未在响应中找到图像数据")
+            debug_log("No image data found in response")
         
         return None
 
@@ -1001,41 +1007,58 @@ class OpenAIImageNode:
             draw.text((10, 230), f"Time: {timestamp}", fill='#ffcccc', font=font)
             
             tensor_img = pil_to_tensor(img)
-            return (tensor_img,)
+            return tensor_img
             
         except Exception:
             # If error image creation fails, return a simple red image
             img = Image.new('RGB', (256, 256), color='red')
             tensor_img = pil_to_tensor(img)
-            return (tensor_img,)
+            return tensor_img
     
     def _translate_error_to_english(self, error_msg):
         """Translate common Chinese error messages to English"""
         # Common Chinese to English translations
         translations = {
+            # Provider 相关
             "未找到 provider": "Provider not found",
             "API 密钥未配置或仍为占位符": "API key not configured or still placeholder",
+            
+            # 简化的用户友好消息
+            "响应中没有图片数据，请重试": "No image data in response, please retry",
+            "响应数据格式异常，请重试": "Response format error, please retry",
+            
+            # 图片处理相关
             "图片生成失败": "Image generation failed",
             "图片编辑失败": "Image editing failed",
+            "图片生成API调用失败": "Image generation API call failed",
+            "图片编辑API调用失败": "Image editing API call failed",
+            "图像数据处理失败": "Image data processing failed",
+            "兼容模式处理失败": "Compatibility mode processing failed",
+            
+            # 网络请求相关
             "下载图片失败": "Image download failed",
+            "从URL下载图片失败": "Failed to download image from URL",
             "无法连接到图片URL": "Unable to connect to image URL",
             "下载图片超时": "Image download timeout",
+            
+            # 数据格式相关
             "base64图像数据解码失败": "Base64 image data decode failed",
-            "API 返回空响应或无数据": "API returned empty response or no data",
             "没有有效的图片可以处理": "No valid images to process",
             "无效的base64数据格式": "Invalid base64 data format",
-            "未返回有效的base64数据或URL": "No valid base64 data or URL returned"
+            "未返回有效的base64数据或URL": "No valid base64 data or URL returned",
+            "base64数据格式错误": "Base64 data format error",
+            
+            # 通用错误
+            "期望字符串，收到": "Expected string, received",
+            "模型响应": "Model response",
+            "错误信息太长，已截断，总长度": "Error message too long, truncated, total length",
+            "字符": "characters",
+            "请重试": "please retry"
         }
         
         english_msg = error_msg
         for chinese, english in translations.items():
             english_msg = english_msg.replace(chinese, english)
-        
-        # Remove any remaining Chinese characters and replace with placeholder
-        import re
-        chinese_pattern = re.compile(r'[\u4e00-\u9fff]+')
-        if chinese_pattern.search(english_msg):
-            english_msg = re.sub(chinese_pattern, '[Chinese text]', english_msg)
         
         return english_msg
 
