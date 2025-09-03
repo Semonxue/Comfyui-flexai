@@ -5,160 +5,6 @@
   "last_link_id": 15,
   "nodes": [
     {
-      "id": 10,
-      "type": "flexai:openai_image",
-      "pos": [
-        180,
-        1870
-      ],
-      "size": [
-        400,
-        244
-      ],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image_1",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 11
-        },
-        {
-          "name": "image_2",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "image_3",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "image_4",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            14
-          ]
-        }
-      ],
-      "properties": {
-        "aux_id": "comfyui-flexai.git",
-        "ver": "cbf1dfffa8a1711ad71c83ffd4c4e70978764497",
-        "Node name for S&R": "flexai:openai_image"
-      },
-      "widgets_values": [
-        "tuzi",
-        "gemini-2.5-flash-image",
-        "Use the nano-banana model to create a 1/7 scale commercialized figure of thecharacter in the illustration, in a realistic style and environment.Place the figure on a computer desk, using a circular transparent acrylic base without any text.On the computer screen, display the ZBrush modeling process of the figure.Next to the computer screen, place a BANDAl-style toy packaging box printed with the original artwork.",
-        "1024x1024",
-        true
-      ]
-    },
-    {
-      "id": 9,
-      "type": "flexai:openai_image",
-      "pos": [
-        190,
-        1530
-      ],
-      "size": [
-        400,
-        244
-      ],
-      "flags": {},
-      "order": 2,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image_1",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 7
-        },
-        {
-          "name": "image_2",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 8
-        },
-        {
-          "name": "image_3",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "image_4",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            11,
-            15
-          ]
-        }
-      ],
-      "properties": {
-        "aux_id": "comfyui-flexai.git",
-        "ver": "cbf1dfffa8a1711ad71c83ffd4c4e70978764497",
-        "Node name for S&R": "flexai:openai_image"
-      },
-      "widgets_values": [
-        "tuzi",
-        "gemini-2.5-flash-image",
-        "show woman wearing the outfit, radio is 2:3",
-        "1024x1024",
-        true
-      ]
-    },
-    {
-      "id": 11,
-      "type": "PreviewImage",
-      "pos": [
-        -150,
-        1880
-      ],
-      "size": [
-        310,
-        340
-      ],
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 15
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.56",
-        "Node name for S&R": "PreviewImage"
-      },
-      "widgets_values": []
-    },
-    {
       "id": 4,
       "type": "LoadImage",
       "pos": [
@@ -266,6 +112,164 @@
       "widgets_values": [
         "ComfyUI"
       ]
+    },
+    {
+      "id": 11,
+      "type": "PreviewImage",
+      "pos": [
+        -150,
+        1880
+      ],
+      "size": [
+        310,
+        340
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 15
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.56",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 9,
+      "type": "flexai:openai_image",
+      "pos": [
+        180,
+        1510
+      ],
+      "size": [
+        400,
+        292
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 7
+        },
+        {
+          "name": "image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 8
+        },
+        {
+          "name": "image_3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image_4",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            11,
+            15
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "comfyui-flexai.git",
+        "ver": "cbf1dfffa8a1711ad71c83ffd4c4e70978764497",
+        "Node name for S&R": "flexai:openai_image"
+      },
+      "widgets_values": [
+        "openrouter",
+        "google/gemini-2.5-flash-image-preview:free",
+        "show woman wearing the outfit",
+        "1024x1024",
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "id": 10,
+      "type": "flexai:openai_image",
+      "pos": [
+        180,
+        1870
+      ],
+      "size": [
+        400,
+        292
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 11
+        },
+        {
+          "name": "image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image_3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image_4",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            14
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "comfyui-flexai.git",
+        "ver": "cbf1dfffa8a1711ad71c83ffd4c4e70978764497",
+        "Node name for S&R": "flexai:openai_image"
+      },
+      "widgets_values": [
+        "openrouter",
+        "google/gemini-2.5-flash-image-preview:free",
+        "Use the nano-banana model to create a 1/7 scale commercialized figure of thecharacter in the illustration, in a realistic style and environment.Place the figure on a computer desk, using a circular transparent acrylic base without any text.On the computer screen, display the ZBrush modeling process of the figure.Next to the computer screen, place a BANDAl-style toy packaging box printed with the original artwork.",
+        "1024x1024",
+        true,
+        true,
+        true
+      ]
     }
   ],
   "links": [
@@ -314,13 +318,13 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.738285163072055,
+      "scale": 0.681264842929995,
       "offset": [
-        378.9883157594046,
-        -1275.3823949568268
+        472.2071956988807,
+        -1349.68554112903
       ]
     },
-    "frontendVersion": "1.26.7",
+    "frontendVersion": "1.26.8",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

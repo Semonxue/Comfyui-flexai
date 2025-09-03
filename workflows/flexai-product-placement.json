@@ -5,153 +5,6 @@
   "last_link_id": 6,
   "nodes": [
     {
-      "id": 3,
-      "type": "LoadImage",
-      "pos": [
-        -504.11871337890625,
-        1976.562255859375
-      ],
-      "size": [
-        274.080078125,
-        314
-      ],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            2
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.56",
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "pasted/image (117).png",
-        "image"
-      ]
-    },
-    {
-      "id": 1,
-      "type": "LoadImage",
-      "pos": [
-        -510,
-        1530
-      ],
-      "size": [
-        300,
-        400
-      ],
-      "flags": {},
-      "order": 1,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            1
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.56",
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "pasted/image (116).png",
-        "image"
-      ]
-    },
-    {
-      "id": 4,
-      "type": "flexai:openai_text",
-      "pos": [
-        -180,
-        1980
-      ],
-      "size": [
-        400,
-        388
-      ],
-      "flags": {},
-      "order": 2,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image_1",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 2
-        },
-        {
-          "name": "image_2",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "image_3",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "image_4",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "STRING",
-          "type": "STRING",
-          "links": [
-            3,
-            4
-          ]
-        }
-      ],
-      "properties": {
-        "aux_id": "comfyui-flexai.git",
-        "ver": "unknown",
-        "Node name for S&R": "flexai:openai_text"
-      },
-      "widgets_values": [
-        "tuzi",
-        "gemini-2.5-flash",
-        0.5,
-        "你是一位专业的摄影师",
-        "Describe the following images in 200 words.",
-        1825743934,
-        "randomize",
-        1,
-        true,
-        true,
-        false
-      ]
-    },
-    {
       "id": 6,
       "type": "StringConcatenate",
       "pos": [
@@ -193,76 +46,6 @@
         "把图中的产品作为核心，去除人物，放置到新的场景,场景描述如下：",
         "",
         ""
-      ]
-    },
-    {
-      "id": 2,
-      "type": "flexai:openai_image",
-      "pos": [
-        240,
-        1550
-      ],
-      "size": [
-        400,
-        244
-      ],
-      "flags": {},
-      "order": 5,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image_1",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 1
-        },
-        {
-          "name": "image_2",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "image_3",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "image_4",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "prompt",
-          "type": "STRING",
-          "widget": {
-            "name": "prompt"
-          },
-          "link": 5
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            6
-          ]
-        }
-      ],
-      "properties": {
-        "aux_id": "comfyui-flexai.git",
-        "ver": "unknown",
-        "Node name for S&R": "flexai:openai_image"
-      },
-      "widgets_values": [
-        "tuzi",
-        "gemini-2.5-flash-image",
-        "",
-        "1024x1024",
-        false
       ]
     },
     {
@@ -324,6 +107,225 @@
       "widgets_values": [
         "ComfyUI"
       ]
+    },
+    {
+      "id": 2,
+      "type": "flexai:openai_image",
+      "pos": [
+        240,
+        1550
+      ],
+      "size": [
+        400,
+        292
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 1
+        },
+        {
+          "name": "image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image_3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image_4",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            6
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "comfyui-flexai.git",
+        "ver": "unknown",
+        "Node name for S&R": "flexai:openai_image"
+      },
+      "widgets_values": [
+        "openrouter",
+        "google/gemini-2.5-flash-image-preview:free",
+        "",
+        "1024x1024",
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "id": 4,
+      "type": "flexai:openai_text",
+      "pos": [
+        -180,
+        1980
+      ],
+      "size": [
+        400,
+        388
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 2
+        },
+        {
+          "name": "image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image_3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image_4",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            3,
+            4
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "comfyui-flexai.git",
+        "ver": "unknown",
+        "Node name for S&R": "flexai:openai_text"
+      },
+      "widgets_values": [
+        "default",
+        "gemini-2.5-flash",
+        0.5,
+        "你是一位专业的摄影师",
+        "Describe the following images in 200 words.",
+        1022637067,
+        "randomize",
+        1,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "id": 3,
+      "type": "LoadImage",
+      "pos": [
+        -500,
+        1980
+      ],
+      "size": [
+        274.080078125,
+        314
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            2
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.56",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "pasted/image (117).png",
+        "image"
+      ]
+    },
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "pos": [
+        -510,
+        1540
+      ],
+      "size": [
+        300,
+        400
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.56",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "pasted/image (116).png",
+        "image"
+      ]
     }
   ],
   "links": [
@@ -380,13 +382,13 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.6531251884353113,
+      "scale": 0.6694969181572579,
       "offset": [
-        658.9134600085647,
-        -1380.9805748265874
+        630.8580551202133,
+        -1395.11246582044
       ]
     },
-    "frontendVersion": "1.26.7",
+    "frontendVersion": "1.26.8",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,
