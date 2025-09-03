@@ -20,6 +20,7 @@ __all__ = [
     "generate_image_b64",
     "_truncate_base64_in_dict",
     "debug_log",
+    "log_api_interaction",
 ]
 
 
@@ -59,7 +60,19 @@ def ensure_client(api_key: str, base_url: str) -> OpenAI:
 
 
 def _truncate_base64_in_dict(obj: Any, max_length: int = 100) -> Any:
-    """递归截断字典中的base64数据以便于调试显示，保留前后50字符"""
+    """递归截断字典或对象中的base64数据以便于调试显示"""
+    # 优先处理可转换为字典的对象
+    if hasattr(obj, 'model_dump'):
+        obj = obj.model_dump()
+    elif hasattr(obj, 'dict'):
+        obj = obj.dict()
+    elif not isinstance(obj, (list, str, int, float, bool, type(None))) and hasattr(obj, '__dict__'):
+        # 避免转换已知不会包含敏感数据的内置类型
+        try:
+            obj = vars(obj)
+        except TypeError:
+            pass # vars() fails on some types, just proceed
+
     if isinstance(obj, dict):
         result = {}
         for key, value in obj.items():
@@ -91,7 +104,20 @@ def _truncate_base64_in_dict(obj: Any, max_length: int = 100) -> Any:
     elif isinstance(obj, list):
         return [_truncate_base64_in_dict(item, max_length) for item in obj]
     elif isinstance(obj, str) and len(obj) > max_length:
-        # 处理字符串情况：检查是否是base64或长字符串
+        # 尝试将长字符串解析为JSON并递归处理
+        import json
+        stripped_obj = obj.strip()
+        if (stripped_obj.startswith('{') and stripped_obj.endswith('}')) or \
+           (stripped_obj.startswith('[') and stripped_obj.endswith(']')):
+            try:
+                parsed_json = json.loads(obj)
+                # 如果解析成功，则递归地对解析后的对象进行截断
+                return _truncate_base64_in_dict(parsed_json, max_length)
+            except (json.JSONDecodeError, TypeError):
+                # 解析失败，则按普通字符串处理
+                pass
+
+        # 处理普通长字符串或无法解析为JSON的字符串
         is_base64 = False
         if obj.startswith('data:image/') and 'base64,' in obj:
             is_base64 = True
@@ -103,6 +129,33 @@ def _truncate_base64_in_dict(obj: Any, max_length: int = 100) -> Any:
         return obj
     else:
         return obj
+
+
+def log_api_interaction(title: str, payload: Any, debug: bool = True):
+    """
+    统一记录API交互日志，包括请求和响应。
+    会自动截断base64数据并格式化为JSON。
+    """
+    if not debug:
+        return
+
+    import json
+    
+    debug_log(f"--- {title} ---")
+    try:
+        # 截断base64数据
+        truncated_payload = _truncate_base64_in_dict(payload)
+        # 格式化为JSON, 使用 default=str 来处理无法序列化的对象
+        log_content = json.dumps(truncated_payload, ensure_ascii=False, indent=2, default=str)
+        debug_log(log_content)
+    except Exception as e:
+        # 如果序列化失败（即使有default=str），记录错误并尝试打印原始对象
+        debug_log(f"Could not serialize payload for debug log even with default=str: {e}")
+        try:
+            debug_log(str(payload))
+        except Exception as e2:
+            debug_log(f"Could not even convert payload to string: {e2}")
+    debug_log("-" * (len(title) + 8))
 
 
 # ---------------- Retry Decorator -----------------
@@ -154,7 +207,16 @@ def chat_complete(client: OpenAI, *, model: str, messages: List[Dict[str, Any]],
     
     # Debug: 记录提交到API的关键信息
     if debug:
-        debug_log(f"Chat API request - model: {model}, stream: {stream}")
+        mode = "Streaming" if stream else "Non-Streaming"
+        params = {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature,
+            "top_p": top_p,
+            "max_tokens": max_tokens,
+            "seed": seed
+        }
+        log_api_interaction(f"Chat API Request ({mode})", params, debug)
     
     if stream:
         # Aggregate streaming manually for simplicity; capture finish_reason & usage
@@ -187,117 +249,25 @@ def chat_complete(client: OpenAI, *, model: str, messages: List[Dict[str, Any]],
             if hasattr(choice, "delta") and getattr(choice.delta, "content", None):
                 full.append(choice.delta.content)
             
-            # 收集delta中的所有其他字段（通用递归遍历）
+            # 收集delta中的所有其他字段
             if hasattr(choice, "delta"):
                 delta = choice.delta
                 
-                # 简化的字段提取：直接尝试已知字段 + __dict__ 遍历
-                extracted_fields = {}
-                
-                # 方法1: 直接尝试已知的关键字段
-                known_fields = ['images', 'tool_calls', 'function_call', 'role', 'refusal', 'attachments']
-                for field_name in known_fields:
-                    try:
-                        if hasattr(delta, field_name):
-                            field_value = getattr(delta, field_name)
-                            if field_value is not None:
-                                extracted_fields[field_name] = field_value
-                    except Exception as e:
-                        if debug:
-                            debug_log(f"Failed to extract field '{field_name}': {e}")
-                
-                # 方法2: __dict__ 遍历
+                # 使用 model_dump() 来安全地获取所有存在的字段
                 try:
-                    if hasattr(delta, '__dict__'):
-                        for key, value in delta.__dict__.items():
-                            if key.startswith('_') or key == 'content' or value is None:
-                                continue
-                            if key not in extracted_fields:  # 避免重复
-                                extracted_fields[key] = value
-                except Exception as e:
-                    pass
-                
-                # 方法3: dir() 遍历公共属性
-                try:
-                    for attr_name in dir(delta):
-                        if attr_name.startswith('_') or attr_name == 'content':
+                    delta_dict = delta.model_dump(exclude_unset=True)
+                    for key, value in delta_dict.items():
+                        if key == 'content' or value is None:
                             continue
-                        if attr_name in extracted_fields:  # 避免重复
-                            continue
-                        if attr_name in known_fields:  # 已经处理过了
-                            continue
-                            
-                        try:
-                            attr_value = getattr(delta, attr_name)
-                            # 跳过方法和特殊类型
-                            if callable(attr_value) or isinstance(attr_value, (type, type(None))):
-                                continue
-                            if attr_value is not None:
-                                extracted_fields[attr_name] = attr_value
-                        except Exception:
-                            continue
-                except Exception as e:
-                    pass
-                
-                # 方法4: 特殊情况处理 - 对于可能使用动态属性的OpenAI对象
-                special_fields = ['images', 'attachments', 'tool_calls', 'function_call']
-                for field_name in special_fields:
-                    if field_name not in extracted_fields:
-                        try:
-                            # 尝试直接访问，即使hasattr返回False
-                            field_value = getattr(delta, field_name, None)
-                            if field_value is not None:
-                                extracted_fields[field_name] = field_value
-                        except Exception:
-                            continue
-                
-                # 方法3: dir() 遍历公共属性
-                try:
-                    for attr_name in dir(delta):
-                        if attr_name.startswith('_') or attr_name == 'content':
-                            continue
-                        if attr_name in extracted_fields:  # 避免重复
-                            continue
-                        if attr_name in known_fields:  # 已经处理过了
-                            continue
-                            
-                        try:
-                            attr_value = getattr(delta, attr_name)
-                            # 跳过方法和特殊类型
-                            if callable(attr_value) or isinstance(attr_value, (type, type(None))):
-                                continue
-                            if attr_value is not None:
-                                extracted_fields[attr_name] = attr_value
-                        except Exception:
-                            continue
+                        
+                        if key not in all_delta_data:
+                            all_delta_data[key] = []
+                        
+                        # 直接追加，后续再处理合并
+                        all_delta_data[key].append(value)
                 except Exception as e:
                     if debug:
-                        debug_log(f"dir() traversal failed: {e}")
-                
-                # 方法4: 特殊情况处理 - 对于可能使用动态属性的OpenAI对象
-                # 有些字段可能通过__getattr__或描述符实现，不在__dict__中
-                special_fields = ['images', 'attachments', 'tool_calls', 'function_call']
-                for field_name in special_fields:
-                    if field_name not in extracted_fields:
-                        try:
-                            # 尝试直接访问，即使hasattr返回False
-                            field_value = getattr(delta, field_name, None)
-                            if field_value is not None:
-                                extracted_fields[field_name] = field_value
-                        except (AttributeError, Exception):
-                            # 继续尝试下一个字段
-                            continue
-                
-                # 将提取到的字段添加到all_delta_data中
-                for key, value in extracted_fields.items():
-                    if key not in all_delta_data:
-                        all_delta_data[key] = []
-                    
-                    # 根据数据类型进行不同处理
-                    if isinstance(value, list):
-                        all_delta_data[key].extend(value)
-                    else:
-                        all_delta_data[key].append(value)
+                        debug_log(f"Could not process delta chunk via model_dump: {e}")
             
             # 检查完成状态
             if getattr(choice, "finish_reason", None):
@@ -311,54 +281,34 @@ def chat_complete(client: OpenAI, *, model: str, messages: List[Dict[str, Any]],
             "usage": usage
         }
         
-        # 将收集到的额外字段添加到结果中
+        # 将收集到的额外字段合并到结果中
         if all_delta_data:
             debug_log(f"Collected fields from streaming: {list(all_delta_data.keys())}", debug)
             for key, values in all_delta_data.items():
-                # 去重并合并值
-                if isinstance(values, list) and len(values) > 0:
-                    if isinstance(values[0], dict):
-                        # 如果是字典列表，直接使用（通常是images数组）
-                        result[key] = values
-                    elif isinstance(values[0], list):
-                        # 如果是嵌套列表，展平
-                        flat_values = []
-                        for v in values:
-                            flat_values.extend(v)
-                        result[key] = flat_values
-                    else:
-                        # 其他情况，使用最后一个非空值或所有值
-                        result[key] = values[-1] if len(values) == 1 else values
+                # 展平列表的列表
+                if all(isinstance(v, list) for v in values):
+                    combined_list = []
+                    for sublist in values:
+                        combined_list.extend(sublist)
+                    result[key] = combined_list
+                else:
+                    # 对于其他类型，简单地将所有收集到的值放在一个列表中
+                    result[key] = values
+
+        debug_log(f"Streaming completed: content_length={len(result.get('content', ''))}, fields={list(result.keys())}", debug)
         
-        debug_log(f"Streaming completed: content_length={len(result.get('content', ''))}, fields={list(all_delta_data.keys())}", debug)
-        
+        if debug:
+            # 记录原始的chunks和聚合后的结果
+            log_api_interaction("Raw Stream Chunks", stream_chunks, debug)
+            log_api_interaction("Aggregated Chat API Response", result, debug)
+
         return result
     else:
         resp = client.chat.completions.create(stream=False, **kwargs)  # type: ignore[arg-type]
         
         # Debug: 打印从API返回的原生JSON数据 (非流式)
         if debug:
-            import json
-            debug_log("Raw JSON data from OpenAI Chat API (non-streaming):")
-            try:
-                resp_dict = resp.model_dump() if hasattr(resp, 'model_dump') else str(resp)
-                if isinstance(resp_dict, dict):
-                    # 截断base64数据后再打印
-                    truncated_resp = _truncate_base64_in_dict(resp_dict)
-                    debug_log(f"Response data: {json.dumps(truncated_resp, ensure_ascii=False, indent=2)}")
-                else:
-                    # 如果不是dict，安全地打印字符串表示
-                    resp_str = str(resp_dict)
-                    if len(resp_str) > 1000:
-                        resp_str = f"{resp_str[:500]}... [response too long, truncated, total length: {len(resp_str)} chars] ...{resp_str[-500:]}"
-                    debug_log(f"Response string: {resp_str}")
-            except Exception as e:
-                debug_log(f"JSON serialization failed: {e}")
-                # 安全地打印响应对象，避免base64数据
-                resp_str = str(resp)
-                if len(resp_str) > 1000:
-                    resp_str = f"{resp_str[:500]}... [response too long, truncated, total length: {len(resp_str)} chars] ...{resp_str[-500:]}"
-                debug_log(f"Raw response: {resp_str}")
+            log_api_interaction("Chat API Response (Non-Streaming)", resp, debug)
         
         content = resp.choices[0].message.content if resp.choices else ""
         finish_reason = resp.choices[0].finish_reason if resp.choices else None
@@ -397,7 +347,7 @@ def generate_image_b64(client: OpenAI, *, model: str, prompt: str, size: str, se
     
     # Debug: 记录请求开始
     if debug:
-        debug_log(f"Image generation request: model={model}, size={size}")
+        log_api_interaction("Image Generation Request", kwargs, debug)
     
     # 记录请求开始时间
     start_time = time.time()
@@ -416,43 +366,7 @@ def generate_image_b64(client: OpenAI, *, model: str, prompt: str, size: str, se
     
     # Debug: 打印从API返回的原生JSON数据
     if debug:
-        import json
-        debug_log("Received API response data analysis:")
-        debug_log(f"Response object type: {type(resp)}")
-        try:
-            resp_dict = resp.model_dump() if hasattr(resp, 'model_dump') else str(resp)
-            if isinstance(resp_dict, dict):
-                # 创建用于调试显示的副本（不包含长base64数据）
-                debug_resp = resp_dict.copy()
-                if 'data' in debug_resp and isinstance(debug_resp['data'], list):
-                    for i, item in enumerate(debug_resp['data']):
-                        if isinstance(item, dict):
-                            debug_item = item.copy()
-                            for field in ['b64_json', 'b64', 'base64', 'data']:
-                                if field in debug_item and isinstance(debug_item[field], str):
-                                    data_length = len(debug_item[field])
-                                    debug_item[field] = f'<base64_data_length: {data_length}>'
-                            debug_resp['data'][i] = debug_item
-                debug_log(f"Response summary: {json.dumps(debug_resp, ensure_ascii=False, indent=2)}")
-            else:
-                debug_log(f"Response type: {type(resp)} (detailed content omitted for brevity)")
-        except Exception as e:
-            debug_log(f"Response analysis failed: {e}")
-        
-        # 安全地打印data属性信息
-        if hasattr(resp, 'data'):
-            data_attr = resp.data
-            if isinstance(data_attr, list):
-                debug_log(f"Response data: List with {len(data_attr)} items")
-            elif data_attr is None:
-                debug_log("Response data: None")
-            else:
-                data_str = str(data_attr)
-                if len(data_str) > 200:
-                    data_str = f"{data_str[:100]}... [data too long, truncated, total length: {len(data_str)} chars] ...{data_str[-100:]}"
-                debug_log(f"Response data: {data_str}")
-        else:
-            debug_log("Response data attribute: NO DATA ATTR")
+        log_api_interaction("Image Generation Response", resp, debug)
     
     data_list = getattr(resp, 'data', [])
     if not data_list:
@@ -574,4 +488,3 @@ def generate_image_b64(client: OpenAI, *, model: str, prompt: str, size: str, se
         debug_log(f"Image generation completed: duration={total_duration:.2f}s, data_length={len(b64_field)}, source={found_attr}")
     
     return b64_field
-

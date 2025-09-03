@@ -1,8 +1,17 @@
+# Environment variables
 .env
+
+# Logs
 debug.log
+
+# Python cache
 __pycache__/
 *.pyc
 *.pyo
+
+# OS-specific
 .DS_Store
-./doc/
+
+# Documentation and Memory Bank
 doc/
+memory-bank/

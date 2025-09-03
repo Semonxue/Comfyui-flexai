@@ -3,7 +3,7 @@
 
 # ComfyUI FlexAI 插件
 
-[![版本](https://img.shields.io/badge/版本-1.0.2-blue.svg)](https://github.com/your-repo/Comfyui-flexai)
+[![版本](https://img.shields.io/badge/版本-1.0.3-blue.svg)](https://github.com/your-repo/Comfyui-flexai)
 [![许可](https://img.shields.io/badge/许可-MIT-green.svg)](LICENSE)
 
 现代化的统一 ComfyUI 插件，支持 OpenAI 兼容 API，具备增强调试功能和双模式图像处理能力。
@@ -11,6 +11,7 @@
 写这个插件主要为了简化自己的工作，通过标准化的openai接口就可是接入llm或图片生成，最近用这个节点主要在玩 gemini-2.5-flash-image 的生成（没测过gemini官方接口，我接的是openai兼容端点），效果还不错。
 
 ## 最近更新
+- 2025-9-3 1.0.3 修复了流式响应处理中的一个错误，并改进了调试日志记录。
 - 2025-9-3 1.0.2 加入对openrouter的支持（支持流式），debug信息单独合并到debug.log
 - 2025-9-2 1.0.1 优化debug模式下的出错提示，加入对openrouter上的免费模型的支持
 - 2025-9-2 1.0发布,亲测接入[tuzi](https://api.tu-zi.com/)和[GB](https://github.com/snailyp/gemini-balance)一点没毛病

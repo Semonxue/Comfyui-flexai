@@ -1,4 +1,4 @@
-"""OpenAITextNode - 统一命名的文本生成节点 (ComfyUI FlexAI Plugin v1.0.0).
+"""OpenAITextNode - 统一命名的文本生成节点 (ComfyUI FlexAI Plugin v1.0.3).
 
 特点:
  - 使用现代 openai>=1.x 客户端 (OpenAI)
