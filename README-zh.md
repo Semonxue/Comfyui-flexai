@@ -3,7 +3,7 @@
 
 # ComfyUI FlexAI 插件
 
-[![版本](https://img.shields.io/badge/版本-1.0.4-blue.svg)](https://github.com/your-repo/Comfyui-flexai)
+[![版本](https://img.shields.io/badge/版本-1.0.5-blue.svg)](https://github.com/your-repo/Comfyui-flexai)
 [![许可](https://img.shields.io/badge/许可-MIT-green.svg)](LICENSE)
 
 现代化的统一 ComfyUI 插件，支持 OpenAI 兼容 API，具备增强调试功能和双模式图像处理能力。
@@ -11,6 +11,7 @@
 写这个插件主要为了简化自己的工作，通过标准化的openai接口就可是接入llm或图片生成，最近用这个节点主要在玩 gemini-2.5-flash-image 的生成（没测过gemini官方接口，我接的是openai兼容端点），效果还不错。
 
 ## 最近更新
+- 2025-9-3 1.0.5 **新增模型记忆功能**：为图像和文本节点提供独立的模型记忆功能，并对代码结构进行了重构优化。
 - 2025-9-3 1.0.4 **实现多图返回**：图像节点现在可以一次性处理和输出多张图片，并解决了在此过程中出现的尺寸不匹配和数据类型错误。
 - 2025-9-3 1.0.3 修复了流式响应处理中的一个错误，并改进了调试日志记录。
 - 2025-9-3 1.0.2 加入对openrouter的支持（支持流式），debug信息单独合并到debug.log
@@ -23,6 +24,7 @@
 ### 🌐 多API来源支持
 - **灵活配置**：通过 `.env` 文件支持多个 API 提供商，这样如果有多个token的渠道就不用切来切去了，可以共用。
 - **动态切换**：无需重启 ComfyUI 即可切换提供商
+- **模型记忆与管理**: 可通过下拉菜单选择常用模型，或在 `custom_model` 输入框中填入新模型，**运行一次后**即可自动保存并供未来选用。
 
 ### 🖼️ OpenAI 图片节点 (`flexai:openai_image`)
 ![](thumb/flexai-image-node.jpg)
