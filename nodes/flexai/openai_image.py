@@ -36,6 +36,7 @@ def _load_utils_module(name):
 
 _images_module = _load_utils_module('images')
 _openai_standard_module = _load_utils_module('openai_standard')
+_model_manager_module = _load_utils_module('model_manager')
 
 # 从工具模块导入函数
 pil_to_tensor = _images_module.pil_to_tensor
@@ -46,10 +47,13 @@ chat_complete = _openai_standard_module.chat_complete
 debug_log = _openai_standard_module.debug_log
 _truncate_base64_in_dict = _openai_standard_module._truncate_base64_in_dict
 log_api_interaction = _openai_standard_module.log_api_interaction
+get_models = _model_manager_module.get_models
+add_model = _model_manager_module.add_model
 
 # 加载环境变量
 load_dotenv(os.path.join(_PLUGIN_ROOT, '.env'), override=True)
 
+_MODEL_KEY = "flexai_image_models"
 
 def download_image_from_url(url: str, timeout: int = 30, debug: bool = False) -> Image.Image:
     """从URL下载图片并返回PIL Image对象"""
@@ -77,13 +81,15 @@ class OpenAIImageNode:
     @classmethod
     def INPUT_TYPES(cls):
         provider_names = provider_config.get_provider_display_names() or ["default"]
+        models = get_models(_MODEL_KEY)
         return {
             "required": {
                 "provider": (provider_names, {"default": provider_names[0]}),
-                "model": ("STRING", {"default": "dall-e-3"}),
-                "prompt": ("STRING", {"multiline": True, "default": "A cute cat in watercolor."}),
+                "model": (models, {"default": models[0] if models else "dall-e-3"}),
             },
             "optional": {
+                "custom_model": ("STRING", {"default": "", "placeholder": "输入新模型(会覆盖上方选择并自动保存)"}),
+                "prompt": ("STRING", {"multiline": True, "default": "A cute cat in watercolor."}),
                 "image_1": ("IMAGE",), "image_2": ("IMAGE",), "image_3": ("IMAGE",), "image_4": ("IMAGE",),
                 "size": ("STRING", {"default": "1024x1024"}),
                 "compatibility_mode": ("BOOLEAN", {"default": False, "tooltip": "Enable compatibility mode for services like OpenRouter via chat endpoints."}),
@@ -96,18 +102,23 @@ class OpenAIImageNode:
     FUNCTION = "execute"
     CATEGORY = "flexai"
 
-    def execute(self, provider, model, prompt, size="1024x1024", compatibility_mode=False, streaming=False, debug=False, **kwargs):
+    def execute(self, provider, model, prompt, size="1024x1024", compatibility_mode=False, streaming=False, debug=False, custom_model="", **kwargs):
         """主执行函数，根据模式调度图片生成或编辑"""
         try:
+            # 确定最终使用的模型名称
+            final_model = custom_model.strip() if custom_model and custom_model.strip() else model
+            if custom_model.strip():
+                add_model(custom_model.strip(), _MODEL_KEY) # 如果使用了自定义模型，则保存
+            
             client = self._setup_client(provider)
             images = [img for img in [kwargs.get(f"image_{i}") for i in range(1, 5)] if img is not None]
 
             if compatibility_mode:
                 if debug: debug_log("Running in Compatibility Mode (Chat).")
-                pil_images = self._run_chat_mode(client, model, prompt, images, size, streaming, debug)
+                pil_images = self._run_chat_mode(client, final_model, prompt, images, size, streaming, debug)
             else:
                 if debug: debug_log("Running in Native Mode (Image API).")
-                pil_images = self._run_native_mode(client, model, prompt, images, size, debug)
+                pil_images = self._run_native_mode(client, final_model, prompt, images, size, debug)
             
             return (pil_to_tensor(pil_images),)
 

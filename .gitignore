@@ -15,3 +15,6 @@ __pycache__/
 # Documentation and Memory Bank
 doc/
 memory-bank/
+
+# Custom models list
+flexai_models.json
