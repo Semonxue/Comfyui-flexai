@@ -1,4 +1,4 @@
-"""OpenAIImageNode - 统一命名的图片生成/编辑节点 (ComfyUI FlexAI Plugin v1.0.3).
+"""OpenAIImageNode - 统一命名的图片生成/编辑节点 (ComfyUI FlexAI Plugin v1.0.4).
 
 特性:
  - 双模式运行: 生成模式 (images.generate) 和编辑模式 (images.edit)
@@ -104,12 +104,12 @@ class OpenAIImageNode:
 
             if compatibility_mode:
                 if debug: debug_log("Running in Compatibility Mode (Chat).")
-                pil_image = self._run_chat_mode(client, model, prompt, images, size, streaming, debug)
+                pil_images = self._run_chat_mode(client, model, prompt, images, size, streaming, debug)
             else:
                 if debug: debug_log("Running in Native Mode (Image API).")
-                pil_image = self._run_native_mode(client, model, prompt, images, size, debug)
+                pil_images = self._run_native_mode(client, model, prompt, images, size, debug)
             
-            return (pil_to_tensor(pil_image),)
+            return (pil_to_tensor(pil_images),)
 
         except Exception as e:
             if debug:
@@ -181,8 +181,8 @@ class OpenAIImageNode:
             byte_streams.append(byte_stream)
         return byte_streams
 
-    def _process_image_api_response(self, response: Any, debug: bool) -> Image.Image:
-        """处理来自 images.generate/edit API 的响应"""
+    def _process_image_api_response(self, response: Any, debug: bool) -> List[Image.Image]:
+        """处理来自 images.generate/edit API 的响应，支持多图"""
         try:
             response_dict = response.model_dump() if hasattr(response, "model_dump") else vars(response)
             log_api_interaction("Full Native Image API Response", response_dict, debug)
@@ -193,30 +193,36 @@ class OpenAIImageNode:
         if not response.data:
             raise ValueError("API response contained no data.")
         
-        item = response.data[0]
-        image_data = item.b64_json or item.url
-        if not image_data:
-            raise ValueError("API response did not contain b64_json or a URL.")
-            
-        if debug:
-            source = "b64_json" if item.b64_json else "url"
-            debug_log(f"Received image data from '{source}'.")
+        image_data_list = []
+        for item in response.data:
+            image_data = item.b66_json or item.url
+            if image_data:
+                image_data_list.append(image_data)
+                if debug:
+                    source = "b64_json" if item.b64_json else "url"
+                    debug_log(f"Received image data from '{source}'.")
+            else:
+                if debug:
+                    debug_log("Skipping item with no b64_json or url.")
 
-        return self._data_to_pil(image_data, debug)
+        if not image_data_list:
+            raise ValueError("API response did not contain any valid b64_json or a URL.")
+            
+        return self._data_list_to_pils(image_data_list, debug)
 
     # --- Compatibility (Chat) Mode ---
-    def _run_chat_mode(self, client, model, prompt, images, size, streaming, debug):
+    def _run_chat_mode(self, client, model, prompt, images, size, streaming, debug) -> List[Image.Image]:
         """使用 chat.completions 端点生成或编辑图片"""
         messages = self._build_chat_messages(prompt, images, size, debug)
         response_data = chat_complete(client, model=model, messages=messages, stream=streaming, temperature=0.7, top_p=1.0, seed=None, include_usage=True, max_tokens=4000, debug=debug)
         
         log_api_interaction("Full Chat Mode API Response", response_data, debug)
 
-        image_data = self._extract_image_from_chat_response(response_data, debug)
-        if not image_data:
+        image_data_list = self._extract_image_from_chat_response(response_data, debug)
+        if not image_data_list:
             raise ValueError("No image data found in chat response.")
             
-        return self._data_to_pil(image_data, debug)
+        return self._data_list_to_pils(image_data_list, debug)
 
     def _build_chat_messages(self, prompt: str, images: List, size: str, debug: bool) -> List[Dict]:
         """为 Chat 模式构建消息体"""
@@ -234,21 +240,26 @@ class OpenAIImageNode:
             
         return [{"role": "user", "content": content}]
 
-    def _extract_image_from_chat_response(self, response: Dict, debug: bool) -> Optional[str]:
-        """从 Chat API 响应中稳健地提取图片数据（URL或Base64）"""
-        if not response: return None
+    def _extract_image_from_chat_response(self, response: Dict, debug: bool) -> List[str]:
+        """从 Chat API 响应中稳健地提取所有图片数据（URL或Base64）"""
+        if not response: return []
         
+        image_data_list = []
+
         # 优先从 `images` 字段提取 (e.g., from streaming aggregation)
-        if "images" in response and response["images"]:
-            first_image = response["images"][0]
-            if isinstance(first_image, dict):
-                url = first_image.get("image_url", {}).get("url") or first_image.get("url")
+        if "images" in response and isinstance(response["images"], list):
+            for image_item in response["images"]:
+                url = None
+                if isinstance(image_item, dict):
+                    url = image_item.get("image_url", {}).get("url") or image_item.get("url")
+                elif isinstance(image_item, str):
+                    url = image_item
+                
                 if url:
-                    if "base64," in url: return url.split("base64,", 1)[1]
-                    return url
-            elif isinstance(first_image, str):
-                 if "base64," in first_image: return first_image.split("base64,", 1)[1]
-                 return first_image
+                    if "base64," in url:
+                        image_data_list.append(url.split("base64,", 1)[1])
+                    else:
+                        image_data_list.append(url)
 
         # 其次，尝试从聚合后的 content 字段或原始响应结构中提取
         content = response.get("content", "")
@@ -260,32 +271,45 @@ class OpenAIImageNode:
 
         if content:
             import re
-            # 匹配 Markdown 图片 `![alt](url)` 或直接的 URL
-            # 增强了对各种URL格式的匹配，包括没有文件扩展名的
-            url_match = re.search(r'!\[.*?\]\((https?://[^\s)]+)\)|(https?://[^\s)]+)', content)
-            if url_match:
-                url = url_match.group(1) or url_match.group(2)
-                if debug: debug_log(f"Found image URL in content: {url}")
-                return url
+            # 匹配所有 Markdown 图片 `![alt](url)` 或直接的 URL
+            url_pattern = r'!\[.*?\]\((https?://[^\s"\'\)]+)\)|(https?://[^\s"\'\)]+)'
+            found_urls = re.findall(url_pattern, content)
+            for url_tuple in found_urls:
+                url = url_tuple[0] or url_tuple[1]
+                if url:
+                    image_data_list.append(url)
             
-            # 匹配 Base64 数据URI
-            b64_match = re.search(r'data:image/[^;]+;base64,([A-Za-z0-9+/=]+)', content)
-            if b64_match:
-                if debug: debug_log("Found base64 data in content.")
-                return b64_match.group(1)
+            # 匹配所有 Base64 数据URI
+            b64_pattern = r'data:image/[^;]+;base64,([A-Za-z0-9+/=]+)'
+            found_b64 = re.findall(b64_pattern, content)
+            image_data_list.extend(found_b64)
 
-        if debug: debug_log("Could not extract image data from chat response.")
-        return None
+        # 去重并保持顺序
+        unique_image_data = list(dict.fromkeys(image_data_list))
+        if debug:
+            debug_log(f"Found {len(unique_image_data)} unique image data items in chat response.")
+        return unique_image_data
 
     # --- Utility Methods ---
-    def _data_to_pil(self, data: str, debug: bool) -> Image.Image:
-        """将URL或Base64数据转换为PIL图像"""
-        if data.startswith("http"):
-            if debug: debug_log("Data is a URL, downloading...")
-            return download_image_from_url(data, debug=debug)
-        else:
-            if debug: debug_log("Data is base64, decoding...")
-            return Image.open(BytesIO(base64.b64decode(data)))
+    def _data_list_to_pils(self, data_list: List[str], debug: bool) -> List[Image.Image]:
+        """将URL或Base64数据列表转换为PIL图像列表"""
+        pil_images = []
+        for i, data in enumerate(data_list):
+            try:
+                if debug: debug_log(f"Processing image data {i+1}/{len(data_list)}...")
+                if data.startswith("http"):
+                    if debug: debug_log("Data is a URL, downloading...")
+                    img = download_image_from_url(data, debug=debug)
+                else:
+                    if debug: debug_log("Data is base64, decoding...")
+                    img = Image.open(BytesIO(base64.b64decode(data)))
+                pil_images.append(img)
+            except Exception as e:
+                if debug:
+                    debug_log(f"Failed to process image data item {i+1}: {e}")
+                # 遇到无效数据时，可以选择跳过或记录错误
+                continue
+        return pil_images
 
     def _create_error_image(self, error_msg: str) -> Image.Image:
         """创建一个显示错误信息的图片"""
