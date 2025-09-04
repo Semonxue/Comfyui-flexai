@@ -25,6 +25,7 @@ def _load_utils_module(name):
 
 _images_module = _load_utils_module('images')
 _openai_standard_module = _load_utils_module('openai_standard')
+_model_manager_module = _load_utils_module('model_manager')
 
 tensor_to_pil = _images_module.tensor_to_pil
 pil_to_base64 = _images_module.pil_to_base64
@@ -32,18 +33,24 @@ ensure_client = _openai_standard_module.ensure_client
 build_multimodal_messages = _openai_standard_module.build_multimodal_messages
 chat_complete = _openai_standard_module.chat_complete
 debug_log = _openai_standard_module.debug_log
+get_models = _model_manager_module.get_models
+add_model = _model_manager_module.add_model
 
 plugin_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 load_dotenv(os.path.join(plugin_root, '.env'), override=True)
+
+_MODEL_KEY = "flexai_text_models"
 
 class OpenAITextNode:
     @classmethod
     def INPUT_TYPES(cls):
         provider_names = provider_config.get_provider_display_names() or ["default"]
+        models = get_models(_MODEL_KEY)
         return {
             "required": {
                 "provider": (provider_names, {"default": provider_names[0]}),
-                "model": ("STRING", {"default": "gpt-4"}),
+                "model": (models, {"default": models[0] if models else "gpt-4"}),
+                "custom_model": ("STRING", {"default": "", "placeholder": "输入新模型(会覆盖上方选择并自动保存)"}),
                 "temperature": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 2.0, "step": 0.1}),
                 "system_prompt": ("STRING", {"default": "You are a helpful assistant.", "multiline": False}),
                 "user_prompt": ("STRING", {"default": "Describe the following images.", "multiline": True}),
@@ -67,7 +74,12 @@ class OpenAITextNode:
 
     def generate_text(self, provider, model, temperature=0.5, system_prompt="You are a helpful assistant.",
                       user_prompt="Describe the following images.", image_1=None, image_2=None, image_3=None,
-                      image_4=None, seed=0, top_p=1.0, include_usage=True, stream=True, debug=False):
+                      image_4=None, seed=0, top_p=1.0, include_usage=True, stream=True, debug=False, custom_model=""):
+        # 确定最终使用的模型名称
+        final_model = custom_model.strip() if custom_model and custom_model.strip() else model
+        if custom_model.strip():
+            add_model(custom_model.strip(), _MODEL_KEY) # 如果使用了自定义模型，则保存
+
         max_tokens = 4096
         include_usage = True  # 始终请求使用量 (stream 时)
         prov = provider_config.get_provider_by_name(provider)
@@ -105,7 +117,7 @@ class OpenAITextNode:
                 continue
 
         messages = build_multimodal_messages(system_prompt, user_prompt, data_urls)
-        result = chat_complete(client, model=model, messages=messages, temperature=temperature, top_p=top_p,
+        result = chat_complete(client, model=final_model, messages=messages, temperature=temperature, top_p=top_p,
                                max_tokens=max_tokens, seed=seed if seed > 0 else None, stream=stream,
                                include_usage=include_usage, debug=debug)
         content = result.get("content", "")
