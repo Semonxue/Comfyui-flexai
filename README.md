@@ -11,11 +11,11 @@ A modern, unified ComfyUI plugin for OpenAI-compatible APIs with enhanced debugg
 I wrote this plugin mainly to simplify my own workflow, allowing access to LLM or image generation through standardized OpenAI interfaces. Recently, I've been mainly using this node to play with Gemini-2.5-Flash-Image generation (haven't tested the official Gemini interface, I'm connecting to an OpenAI-compatible endpoint), and the results are quite good.
 
 ## Recent Updates
-- 2025-9-13 1.0.6 **Image Node URI Content Support**: The image node now supports JPG type when receiving image URI content, to support requests from some Seedream4 interfaces.
-- 2025-9-3 1.0.5 **Model Memory & Management**: Added independent model memory functionality for both image and text nodes, and refactored the code structure for optimization.
-- 2025-9-3 1.0.4 **Multi-Image Return**: The image node can now process and output multiple images at once, resolving size mismatch and data type errors.
-- 2025-9-3 1.0.3 Fixed a bug in stream response handling and improved debug logging.
-- 2025-9-3 1.0.2 Added OpenRouter support (with streaming), debug info merged to debug.log
+- 2025-9-13 v1.0.6 The image node now supports JPG type for image URI content to be compatible with some seedream4 API requests.
+- 2025-9-3 v1.0.5 **Model Memory & Management**: Added a persistent model list for both image and text nodes, with major code refactoring for maintainability.
+- 2025-9-3 v1.0.4 **Multi-Image Return**: The image node can now process and output multiple images at once, resolving size mismatch and data type errors.
+- 2025-9-3 v1.0.3 Fixed a bug in stream response handling and improved debug logging.
+- 2025-9-3 v1.0.2 Added OpenRouter support (with streaming), debug info merged to debug.log
 - 2025-9-2 v1.0.1 Optimized error messages in debug mode, added support for free models on OpenRouter
 - 2025-9-2 v1.0 release, tested integration with [tuzi](https://api.tu-zi.com/) and [GB](https://github.com/snailyp/gemini-balance) works perfectly
 - 2025-8-31 Plugin initialization
@@ -30,10 +30,10 @@ I wrote this plugin mainly to simplify my own workflow, allowing access to LLM o
 ### 🖼️ OpenAI Image Node (`flexai:openai_image`)
 ![](thumb/flexai-image-node.jpg)
 **Dual-Mode Operation:**
-- **Edit Mode**: Provide 1-4 images → Uses `images.edit` API
-- **Generate Mode**: No images → Uses `images.generate` API
+- **Edit Mode**: Provide 1-4 images → Uses `images.edit` API, i.e., `/v1/images/edits` endpoint
+- **Generate Mode**: No images → Uses `images.generate` API, i.e., `/v1/images/generations` endpoint
 
-**Compatibility Mode**: Generate images via chat endpoint, compatible with OpenRouter and other third-party OpenAI-compatible interfaces
+**Compatibility Mode**: Generate images via chat endpoint, compatible with OpenRouter and other third-party OpenAI-compatible interfaces, with streaming support, i.e., the standard `/v1/chat/completions` endpoint.
 
 ### 💬 OpenAI Text Node (`flexai:openai_text`)
 **Multimodal Support:**
@@ -69,7 +69,7 @@ I wrote this plugin mainly to simplify my own workflow, allowing access to LLM o
 
 ## Configuration
 
-Create a `.env` file in the plugin root directory.
+Create a `.env` file in the plugin root directory, or copy and rename the `.env.example` file.
 
 ### Single Provider
 ```bash
