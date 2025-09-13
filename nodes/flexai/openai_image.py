@@ -206,7 +206,7 @@ class OpenAIImageNode:
         
         image_data_list = []
         for item in response.data:
-            image_data = item.b66_json or item.url
+            image_data = item.b64_json or item.url
             if image_data:
                 image_data_list.append(image_data)
                 if debug:
@@ -318,6 +318,11 @@ class OpenAIImageNode:
             except Exception as e:
                 if debug:
                     debug_log(f"Failed to process image data item {i+1}: {e}")
+                    # 记录导致失败的数据片段，但避免记录过长的base64字符串
+                    if len(data) > 100:
+                        debug_log(f"Truncated problematic data: {data[:100]}...")
+                    else:
+                        debug_log(f"Problematic data: {data}")
                 # 遇到无效数据时，可以选择跳过或记录错误
                 continue
         return pil_images

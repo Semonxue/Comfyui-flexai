@@ -7,7 +7,7 @@
 分类(Category): flexai
 """
 
-__version__ = "1.0.5"
+__version__ = "1.0.6"
 
 import os
 import sys
