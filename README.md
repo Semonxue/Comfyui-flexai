@@ -3,7 +3,7 @@ English | [中文 / Chinese](README-zh.md)
 
 # ComfyUI FlexAI Plugin
 
-[![Version](https://img.shields.io/badge/version-1.0.5-blue.svg)](https://github.com/your-repo/Comfyui-flexai)
+[![Version](https://img.shields.io/badge/version-1.0.6-blue.svg)](https://github.com/your-repo/Comfyui-flexai)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 A modern, unified ComfyUI plugin for OpenAI-compatible APIs with enhanced debugging and dual-mode image processing capabilities.
@@ -11,10 +11,11 @@ A modern, unified ComfyUI plugin for OpenAI-compatible APIs with enhanced debugg
 I wrote this plugin mainly to simplify my own workflow, allowing access to LLM or image generation through standardized OpenAI interfaces. Recently, I've been mainly using this node to play with Gemini-2.5-Flash-Image generation (haven't tested the official Gemini interface, I'm connecting to an OpenAI-compatible endpoint), and the results are quite good.
 
 ## Recent Updates
-- 2025-9-3 v1.0.5 **Model Memory & Management**: Added a persistent model list for both image and text nodes, with major code refactoring for maintainability.
-- 2025-9-3 v1.0.4 **Multi-Image Return**: The image node can now process and output multiple images at once, resolving size mismatch and data type errors.
-- 2025-9-3 v1.0.3 Fixed a bug in stream response handling and improved debug logging.
-- 2025-9-3 v1.0.2 Added OpenRouter support (with streaming), debug info merged to debug.log
+- 2025-9-13 1.0.6 **Image Node URI Content Support**: The image node now supports JPG type when receiving image URI content, to support requests from some Seedream4 interfaces.
+- 2025-9-3 1.0.5 **Model Memory & Management**: Added independent model memory functionality for both image and text nodes, and refactored the code structure for optimization.
+- 2025-9-3 1.0.4 **Multi-Image Return**: The image node can now process and output multiple images at once, resolving size mismatch and data type errors.
+- 2025-9-3 1.0.3 Fixed a bug in stream response handling and improved debug logging.
+- 2025-9-3 1.0.2 Added OpenRouter support (with streaming), debug info merged to debug.log
 - 2025-9-2 v1.0.1 Optimized error messages in debug mode, added support for free models on OpenRouter
 - 2025-9-2 v1.0 release, tested integration with [tuzi](https://api.tu-zi.com/) and [GB](https://github.com/snailyp/gemini-balance) works perfectly
 - 2025-8-31 Plugin initialization
