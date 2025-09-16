@@ -1,10 +1,10 @@
 """Plugin entry for Comfyui_flexai.
 
-提供 FlexAI 系列节点。
-节点命名规范:
-  - 键: flexai:genimage / flexai:gentext
-  - 显示名: FlexAI图片生成 / FlexAI文本生成
-分类(Category): flexai
+Provides the FlexAI series of nodes.
+Node Naming Convention:
+  - Key: flexai:openai_image / flexai:openai_text
+  - Display Name: OpenAI Image (FlexAI) / OpenAI Text (FlexAI)
+Category: flexai
 """
 
 __version__ = "1.0.6"
@@ -42,8 +42,8 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "flexai:openai_image": "OpenAI 图片 (FlexAI)",
-    "flexai:openai_text": "OpenAI 文本 (FlexAI)",
+    "flexai:openai_image": "OpenAI Image (FlexAI)",
+    "flexai:openai_text": "OpenAI Text (FlexAI)",
 }
 
 __all__ = [

@@ -1,14 +1,14 @@
-"""OpenAIImageNode - 统一命名的图片生成/编辑节点 (ComfyUI FlexAI Plugin v1.0.4).
+"""OpenAIImageNode - A unified node for image generation and editing (ComfyUI FlexAI Plugin v1.0.4).
 
-特性:
- - 双模式运行: 生成模式 (images.generate) 和编辑模式 (images.edit)
- - 智能判断: 根据是否提供图片自动选择运行模式
- - 编辑模式: 可提交1-4张图片进行编辑处理（images.edit支持多图输入）
- - 生成模式: 纯文本提示词生成图片
- - 错误处理: 安全系统拒绝时提供友好提示，生成错误图片而非异常
- - 使用现代 OpenAI Python SDK (>=1.0)
- - 支持base64和URL两种响应格式
- - 增强调试: 详细API请求响应日志和完整错误分析
+Features:
+ - Dual-mode operation: Generation (images.generate) and Editing (images.edit).
+ - Smart detection: Automatically selects the mode based on image input.
+ - Edit mode: Supports editing 1-4 images (leveraging multi-image capabilities).
+ - Generation mode: Generates images from text prompts.
+ - Error handling: Provides a user-friendly error image on failure instead of crashing.
+ - Uses the modern OpenAI Python SDK (>=1.0).
+ - Supports both base64 and URL response formats.
+ - Enhanced debugging: Detailed API request/response logging and error analysis.
 """
 from __future__ import annotations
 import os
@@ -23,8 +23,8 @@ from dotenv import load_dotenv
 
 import provider_config
 
-# -- 动态加载工具模块 --
-# 为了避免在ComfyUI中出现导入问题，直接通过文件路径加载
+# -- Dynamically load utility modules --
+# To avoid import issues in ComfyUI, load directly from file path
 _PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 _UTILS_DIR = os.path.join(_PLUGIN_ROOT, 'nodes', 'utils')
 
@@ -38,7 +38,7 @@ _images_module = _load_utils_module('images')
 _openai_standard_module = _load_utils_module('openai_standard')
 _model_manager_module = _load_utils_module('model_manager')
 
-# 从工具模块导入函数
+# Import functions from utility modules
 pil_to_tensor = _images_module.pil_to_tensor
 tensor_to_pil = _images_module.tensor_to_pil
 pil_to_base64 = _images_module.pil_to_base64
@@ -50,18 +50,18 @@ log_api_interaction = _openai_standard_module.log_api_interaction
 get_models = _model_manager_module.get_models
 add_model = _model_manager_module.add_model
 
-# 加载环境变量
+# Load environment variables
 load_dotenv(os.path.join(_PLUGIN_ROOT, '.env'), override=True)
 
 _MODEL_KEY = "flexai_image_models"
 
 def download_image_from_url(url: str, timeout: int = 30, debug: bool = False) -> Image.Image:
-    """从URL下载图片并返回PIL Image对象"""
+    """Downloads an image from a URL and returns a PIL Image object."""
     if debug:
         debug_log(f"Downloading image from URL: {url[:100]}...")
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
-        # 增加 verify=False 尝试解决 SSLError
+        # Add verify=False to try to resolve SSLError
         if debug:
             debug_log("Skipping SSL verification for image download.")
         response = requests.get(url, headers=headers, timeout=timeout, verify=False)
@@ -88,7 +88,7 @@ class OpenAIImageNode:
                 "model": (models, {"default": models[0] if models else "dall-e-3"}),
             },
             "optional": {
-                "custom_model": ("STRING", {"default": "", "placeholder": "输入新模型(会覆盖上方选择并自动保存)"}),
+                "custom_model": ("STRING", {"default": "", "placeholder": "Enter new model (overrides selection and saves automatically)"}),
                 "prompt": ("STRING", {"multiline": True, "default": "A cute cat in watercolor."}),
                 "image_1": ("IMAGE",), "image_2": ("IMAGE",), "image_3": ("IMAGE",), "image_4": ("IMAGE",),
                 "size": ("STRING", {"default": "1024x1024"}),
@@ -103,12 +103,12 @@ class OpenAIImageNode:
     CATEGORY = "flexai"
 
     def execute(self, provider, model, prompt, size="1024x1024", compatibility_mode=False, streaming=False, debug=False, custom_model="", **kwargs):
-        """主执行函数，根据模式调度图片生成或编辑"""
+        """Main execution function, dispatches to generation or editing based on mode."""
         try:
-            # 确定最终使用的模型名称
+            # Determine the final model name to use
             final_model = custom_model.strip() if custom_model and custom_model.strip() else model
             if custom_model.strip():
-                add_model(custom_model.strip(), _MODEL_KEY) # 如果使用了自定义模型，则保存
+                add_model(custom_model.strip(), _MODEL_KEY) # If a custom model is used, save it
             
             client = self._setup_client(provider)
             images = [img for img in [kwargs.get(f"image_{i}") for i in range(1, 5)] if img is not None]
@@ -129,7 +129,7 @@ class OpenAIImageNode:
             return (self._create_error_image(str(e)),)
 
     def _setup_client(self, provider_name: str):
-        """配置并返回API客户端"""
+        """Configures and returns the API client."""
         prov = provider_config.get_provider_by_name(provider_name)
         if not prov:
             raise ValueError(f"Provider '{provider_name}' not found.")
@@ -139,9 +139,9 @@ class OpenAIImageNode:
 
     # --- Native Mode ---
     def _run_native_mode(self, client, model, prompt, images, size, debug):
-        """使用 OpenAI 原生 images.generate 或 images.edit 端点"""
+        """Uses the native OpenAI images.generate or images.edit endpoints."""
         if images:
-            # 编辑模式
+            # Edit mode
             if debug: debug_log(f"Native mode: editing {len(images)} image(s).")
             image_files = self._preprocess_images_for_edit(images, debug)
             try:
@@ -155,8 +155,8 @@ class OpenAIImageNode:
                 }
                 log_api_interaction("Native Image Edit Request", params, debug)
 
-                # 注意：OpenAI SDK的images.edit的image参数只接受单个文件，而不是列表
-                # 如果需要支持多图编辑，需要依赖可以处理多图的自定义chat模式
+                # Note: The OpenAI SDK's images.edit 'image' parameter accepts a single file, not a list.
+                # To support multi-image editing, the custom chat mode must be used.
                 if len(image_files) > 1 and debug:
                     debug_log("Warning: Native edit mode only uses the first image.")
                 response = client.images.edit(model=model, image=image_files[0], prompt=prompt, size=size, response_format="b64_json", n=1)
@@ -164,7 +164,7 @@ class OpenAIImageNode:
                 for f in image_files:
                     f.close()
         else:
-            # 生成模式
+            # Generation mode
             params = {
                 "model": model,
                 "prompt": prompt,
@@ -178,7 +178,7 @@ class OpenAIImageNode:
         return self._process_image_api_response(response, debug)
 
     def _preprocess_images_for_edit(self, images: List, debug: bool) -> List[BytesIO]:
-        """将输入的Tensor转换为用于API调用的PNG字节流列表"""
+        """Converts input Tensors to a list of PNG byte streams for the API call."""
         byte_streams = []
         for i, tensor in enumerate(images):
             if debug: debug_log(f"Preprocessing image {i+1}/{len(images)} for editing.")
@@ -193,7 +193,7 @@ class OpenAIImageNode:
         return byte_streams
 
     def _process_image_api_response(self, response: Any, debug: bool) -> List[Image.Image]:
-        """处理来自 images.generate/edit API 的响应，支持多图"""
+        """Processes the response from the images.generate/edit API, with multi-image support."""
         try:
             response_dict = response.model_dump() if hasattr(response, "model_dump") else vars(response)
             log_api_interaction("Full Native Image API Response", response_dict, debug)
@@ -223,7 +223,7 @@ class OpenAIImageNode:
 
     # --- Compatibility (Chat) Mode ---
     def _run_chat_mode(self, client, model, prompt, images, size, streaming, debug) -> List[Image.Image]:
-        """使用 chat.completions 端点生成或编辑图片"""
+        """Generates or edits an image using the chat.completions endpoint."""
         messages = self._build_chat_messages(prompt, images, size, debug)
         response_data = chat_complete(client, model=model, messages=messages, stream=streaming, temperature=0.7, top_p=1.0, seed=None, include_usage=True, max_tokens=4000, debug=debug)
         
@@ -236,14 +236,14 @@ class OpenAIImageNode:
         return self._data_list_to_pils(image_data_list, debug)
 
     def _build_chat_messages(self, prompt: str, images: List, size: str, debug: bool) -> List[Dict]:
-        """为 Chat 模式构建消息体"""
+        """Builds the message body for Chat mode."""
         content = [{"type": "text", "text": f"{prompt}\n\nImage size requirement: {size}"}]
         
         for i, tensor in enumerate(images):
             if debug: debug_log(f"Encoding image {i+1}/{len(images)} for chat.")
             pil_img = tensor_to_pil(tensor[0] if tensor.ndim == 4 else tensor)
             
-            # 调整图片大小以减少token消耗
+            # Resize image to reduce token consumption
             pil_img.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
             
             base64_url = pil_to_base64(pil_img)
@@ -252,12 +252,12 @@ class OpenAIImageNode:
         return [{"role": "user", "content": content}]
 
     def _extract_image_from_chat_response(self, response: Dict, debug: bool) -> List[str]:
-        """从 Chat API 响应中稳健地提取所有图片数据（URL或Base64）"""
+        """Robustly extracts all image data (URL or Base64) from the Chat API response."""
         if not response: return []
         
         image_data_list = []
 
-        # 优先从 `images` 字段提取 (e.g., from streaming aggregation)
+        # First, try to extract from the `images` field (e.g., from streaming aggregation)
         if "images" in response and isinstance(response["images"], list):
             for image_item in response["images"]:
                 url = None
@@ -272,7 +272,7 @@ class OpenAIImageNode:
                     else:
                         image_data_list.append(url)
 
-        # 其次，尝试从聚合后的 content 字段或原始响应结构中提取
+        # Second, try to extract from the aggregated content field or original response structure
         content = response.get("content", "")
         if not content:
             try:
@@ -282,7 +282,7 @@ class OpenAIImageNode:
 
         if content:
             import re
-            # 匹配所有 Markdown 图片 `![alt](url)` 或直接的 URL
+            # Match all Markdown images `![alt](url)` or direct URLs
             url_pattern = r'!\[.*?\]\((https?://[^\s"\'\)]+)\)|(https?://[^\s"\'\)]+)'
             found_urls = re.findall(url_pattern, content)
             for url_tuple in found_urls:
@@ -290,12 +290,12 @@ class OpenAIImageNode:
                 if url:
                     image_data_list.append(url)
             
-            # 匹配所有 Base64 数据URI
+            # Match all Base64 data URIs
             b64_pattern = r'data:image/[^;]+;base64,([A-Za-z0-9+/=]+)'
             found_b64 = re.findall(b64_pattern, content)
             image_data_list.extend(found_b64)
 
-        # 去重并保持顺序
+        # Deduplicate while preserving order
         unique_image_data = list(dict.fromkeys(image_data_list))
         if debug:
             debug_log(f"Found {len(unique_image_data)} unique image data items in chat response.")
@@ -303,7 +303,7 @@ class OpenAIImageNode:
 
     # --- Utility Methods ---
     def _data_list_to_pils(self, data_list: List[str], debug: bool) -> List[Image.Image]:
-        """将URL或Base64数据列表转换为PIL图像列表"""
+        """Converts a list of URLs or Base64 data into a list of PIL images."""
         pil_images = []
         for i, data in enumerate(data_list):
             try:
@@ -318,27 +318,27 @@ class OpenAIImageNode:
             except Exception as e:
                 if debug:
                     debug_log(f"Failed to process image data item {i+1}: {e}")
-                    # 记录导致失败的数据片段，但避免记录过长的base64字符串
+                    # Log the data snippet that caused the failure, but avoid logging long base64 strings
                     if len(data) > 100:
                         debug_log(f"Truncated problematic data: {data[:100]}...")
                     else:
                         debug_log(f"Problematic data: {data}")
-                # 遇到无效数据时，可以选择跳过或记录错误
+                # When invalid data is encountered, either skip or log the error
                 continue
         return pil_images
 
     def _create_error_image(self, error_msg: str) -> Image.Image:
-        """创建一个显示错误信息的图片"""
+        """Creates an image displaying the error message."""
         img = Image.new('RGB', (512, 512), color='#300000')
         draw = ImageDraw.Draw(img)
         try:
-            # 尝试加载一个常见的跨平台字体
+            # Try to load a common cross-platform font
             font_path = "Arial.ttf" if sys.platform == "win32" else "/System/Library/Fonts/Helvetica.ttc"
             font = ImageFont.truetype(font_path, 18)
         except IOError:
             font = ImageFont.load_default()
 
-        # 简单的文本换行
+        # Simple text wrapping
         lines = []
         words = error_msg.split()
         line = ""
@@ -351,7 +351,7 @@ class OpenAIImageNode:
         lines.append(line.strip())
         
         draw.text((10, 10), "FlexAI Node Error:", fill='#ff4444', font=font)
-        for i, line in enumerate(lines[:20]): # 限制行数
+        for i, line in enumerate(lines[:20]): # Limit number of lines
             draw.text((10, 40 + i * 20), line, fill='white', font=font)
             
         return pil_to_tensor(img)

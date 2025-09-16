@@ -1,11 +1,11 @@
-"""OpenAITextNode - 统一命名的文本生成节点 (ComfyUI FlexAI Plugin v1.0.4).
+"""OpenAITextNode - A unified node for text generation (ComfyUI FlexAI Plugin v1.0.4).
 
-特点:
- - 使用现代 openai>=1.x 客户端 (OpenAI)
- - 多模态: 支持可选 0-4 张参考图 (data URL image_url)
- - 内部固定 max_tokens=4096; 精简参数(去除 legacy response_language/max_tokens)
- - 可供旧 key (flexai:gentext) 兼容, 由插件入口重复映射
- - 增强调试: 完整JSON请求响应日志和流式输出支持
+Features:
+ - Uses the modern openai>=1.x client.
+ - Multimodal: Supports 0-4 optional reference images (as data URLs).
+ - Fixed max_tokens=4096 internally; simplified parameters (removed legacy ones).
+ - Compatible with old key (flexai:gentext) through plugin entry point mapping.
+ - Enhanced debugging: Full JSON request/response logging and streaming support.
 """
 import os
 from dotenv import load_dotenv
@@ -50,7 +50,7 @@ class OpenAITextNode:
             "required": {
                 "provider": (provider_names, {"default": provider_names[0]}),
                 "model": (models, {"default": models[0] if models else "gpt-4"}),
-                "custom_model": ("STRING", {"default": "", "placeholder": "输入新模型(会覆盖上方选择并自动保存)"}),
+                "custom_model": ("STRING", {"default": "", "placeholder": "Enter new model (overrides selection and saves automatically)"}),
                 "temperature": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 2.0, "step": 0.1}),
                 "system_prompt": ("STRING", {"default": "You are a helpful assistant.", "multiline": False}),
                 "user_prompt": ("STRING", {"default": "Describe the following images.", "multiline": True}),
@@ -75,27 +75,27 @@ class OpenAITextNode:
     def generate_text(self, provider, model, temperature=0.5, system_prompt="You are a helpful assistant.",
                       user_prompt="Describe the following images.", image_1=None, image_2=None, image_3=None,
                       image_4=None, seed=0, top_p=1.0, include_usage=True, stream=True, debug=False, custom_model=""):
-        # 确定最终使用的模型名称
+        # Determine the final model name to use
         final_model = custom_model.strip() if custom_model and custom_model.strip() else model
         if custom_model.strip():
-            add_model(custom_model.strip(), _MODEL_KEY) # 如果使用了自定义模型，则保存
+            add_model(custom_model.strip(), _MODEL_KEY) # If a custom model is used, save it
 
         max_tokens = 4096
-        include_usage = True  # 始终请求使用量 (stream 时)
+        include_usage = True  # Always request usage data (especially for streaming)
         prov = provider_config.get_provider_by_name(provider)
         if prov is None:
             provider_config.load_providers(force_reload=True)
             prov = provider_config.get_provider_by_name(provider)
         if prov is None:
-            raise ValueError(f"未找到 provider: {provider}")
+            raise ValueError(f"Provider not found: {provider}")
         api_key = prov.api_key
         base_url = prov.base_url
         if not api_key or api_key.startswith("your_key"):
-            raise ValueError("API 密钥未配置或仍为占位符")
+            raise ValueError("API key is not configured or is still a placeholder.")
 
         client = ensure_client(api_key, base_url)
 
-        # 参考图转 data url
+        # Convert reference images to data URLs
         data_urls = []
         for ref in [image_1, image_2, image_3, image_4]:
             if ref is None:
@@ -122,7 +122,7 @@ class OpenAITextNode:
                                include_usage=include_usage, debug=debug)
         content = result.get("content", "")
         if not content.strip():
-            raise ValueError("API返回空响应。")
+            raise ValueError("API returned an empty response.")
         return (content,)
 
 __all__ = ["OpenAITextNode"]
