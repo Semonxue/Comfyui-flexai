@@ -29,7 +29,7 @@ Documentation = "https://github.com/Semonxue/Comfyui-flexai/wiki"
 "Bug Tracker" = "https://github.com/Semonxue/Comfyui-flexai/issues"
 
 [tool.comfy]
-PublisherId = ""
+PublisherId = "semonxue"
 DisplayName = "Comfyui-flexai"
 Icon = ""
 includes = [] 
