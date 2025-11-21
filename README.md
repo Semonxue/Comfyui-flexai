@@ -12,6 +12,7 @@ I wrote this plugin mainly to simplify my own workflow, allowing access to LLM o
 
 ## Recent Updates
 - 2025-11-21 v1.0.7 **New Models & Aspect Ratio Support**: Added support for models like `nano-banana` and `nano-banana-pro`, and allows using aspect ratios for size in non-compatibility mode.
+![](thumb/flexai-image-nanobananapro.jpg)
 - 2025-9-13 v1.0.6 The image node now supports JPG type for image URI content to be compatible with some seedream4 API requests.
 - 2025-9-3 v1.0.5 **Model Memory & Management**: Added a persistent model list for both image and text nodes, with major code refactoring for maintainability.
 - 2025-9-3 v1.0.4 **Multi-Image Return**: The image node can now process and output multiple images at once, resolving size mismatch and data type errors.
