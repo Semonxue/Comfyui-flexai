@@ -3,7 +3,7 @@
 
 # ComfyUI FlexAI 插件
 
-[![版本](https://img.shields.io/badge/版本-1.0.5-blue.svg)](https://github.com/your-repo/Comfyui-flexai)
+[![版本](https://img.shields.io/badge/版本-1.0.7-blue.svg)](https://github.com/your-repo/Comfyui-flexai)
 [![许可](https://img.shields.io/badge/许可-MIT-green.svg)](LICENSE)
 
 现代化的统一 ComfyUI 插件，支持 OpenAI 兼容 API，具备增强调试功能和双模式图像处理能力。
@@ -11,6 +11,8 @@
 写这个插件主要为了简化自己的工作，通过标准化的openai接口就可是接入llm或图片生成，最近用这个节点主要在玩 gemini-2.5-flash-image 的生成（没测过gemini官方接口，我接的是openai兼容端点），效果还不错。
 
 ## 最近更新
+- 2025-11-21 1.0.7 **支持新模型与尺寸比例**：为图像节点添加了对 `nano-banana`、`nano-banana-pro` 等模型的支持，并允许在非兼容模式下使用宽高比设置尺寸。
+![](thumb/flexai-image-nanobananapro.jpg)
 - 2025-9-13 1.0.6 图片节点接收图像uri内容时支持jpg类型，以支持部分seedream4的接口请求。
 - 2025-9-3 1.0.5 **新增模型记忆功能**：为图像和文本节点提供独立的模型记忆功能，并对代码结构进行了重构优化。
 - 2025-9-3 1.0.4 **实现多图返回**：图像节点现在可以一次性处理和输出多张图片，并解决了在此过程中出现的尺寸不匹配和数据类型错误。
@@ -34,6 +36,11 @@
 - **生成模式**：无图片输入 → 使用 `images.generate` API，即 `/v1/images/generations` 接口
 
 **兼容模式**：通过chat端点实现图像生成，兼容OpenRouter等第三方Openai兼容接口，流式支持,即常规的 `/v1/chat/completions` 接口
+
+**模型支持扩展**：
+- 目前接口已支持 `nano-banana`、`nano-banana-pro` 等新模型。
+- 您可以通过 `custom_model` 字段直接调用，例如，在使用 `api.tu-zi.com` 服务时，可以填入 `gemini-3-pro-image-preview` 来使用。
+- 这些模型同时支持标准的生图模式和兼容模式。
 
 
 
@@ -108,7 +115,7 @@ OPENAI_API_BASE_custom=https://your-api.example.com/v1
 | `model` | 字符串 | 模型名称 (如 `dall-e-3`, `dall-e-2`) |
 | `prompt` | 字符串 | 生成/编辑提示词 |
 | `image_1-4` | 图片 | 可选图片（提供任意张则进入编辑模式） |
-| `size` | 字符串 | 输出尺寸 (如 `1024x1024`) |
+| `size` | 字符串 | 输出尺寸 (如 `1024x1024`) <br><br> **宽高比支持**：对于 `nano-banana` 和 `nano-banana-pro` 等特定模型，在**非兼容模式**下，此字段可以直接输入宽高比。支持的比例与对应的分辨率如下：<br> `1x1` → `1024x1024` <br> `2x3` → `832x1248` <br> `3x2` → `1248x832` <br> `3x4` → `864x1184` <br> `4x3` → `1184x864` <br> `4x5` → `896x1152` <br> `5x4` → `1152x896` <br> `9x16` → `768x1344` <br> `16x9` → `1344x768` <br> `21x9` → `1536x672` |
 | `compatibility_mode` | 布尔 | **兼容模式**：启用后通过chat端点实现图像生成，兼容OpenRouter等第三方服务 |
 | `stream` | 布尔 | 启用流式模式 |
 | `debug` | 布尔 | **启用详细调试日志** |

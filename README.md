@@ -3,7 +3,7 @@ English | [中文 / Chinese](README-zh.md)
 
 # ComfyUI FlexAI Plugin
 
-[![Version](https://img.shields.io/badge/version-1.0.6-blue.svg)](https://github.com/your-repo/Comfyui-flexai)
+[![Version](https://img.shields.io/badge/version-1.0.7-blue.svg)](https://github.com/your-repo/Comfyui-flexai)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 A modern, unified ComfyUI plugin for OpenAI-compatible APIs with enhanced debugging and dual-mode image processing capabilities.
@@ -11,6 +11,7 @@ A modern, unified ComfyUI plugin for OpenAI-compatible APIs with enhanced debugg
 I wrote this plugin mainly to simplify my own workflow, allowing access to LLM or image generation through standardized OpenAI interfaces. Recently, I've been mainly using this node to play with Gemini-2.5-Flash-Image generation (haven't tested the official Gemini interface, I'm connecting to an OpenAI-compatible endpoint), and the results are quite good.
 
 ## Recent Updates
+- 2025-11-21 v1.0.7 **New Models & Aspect Ratio Support**: Added support for models like `nano-banana` and `nano-banana-pro`, and allows using aspect ratios for size in non-compatibility mode.
 - 2025-9-13 v1.0.6 The image node now supports JPG type for image URI content to be compatible with some seedream4 API requests.
 - 2025-9-3 v1.0.5 **Model Memory & Management**: Added a persistent model list for both image and text nodes, with major code refactoring for maintainability.
 - 2025-9-3 v1.0.4 **Multi-Image Return**: The image node can now process and output multiple images at once, resolving size mismatch and data type errors.
@@ -34,6 +35,11 @@ I wrote this plugin mainly to simplify my own workflow, allowing access to LLM o
 - **Generate Mode**: No images → Uses `images.generate` API, i.e., `/v1/images/generations` endpoint
 
 **Compatibility Mode**: Generate images via chat endpoint, compatible with OpenRouter and other third-party OpenAI-compatible interfaces, with streaming support, i.e., the standard `/v1/chat/completions` endpoint.
+
+**Extended Model Support**:
+- The interface now supports new models like `nano-banana` and `nano-banana-pro`.
+- You can call them directly via the `custom_model` field. For instance, when using services like `api.tu-zi.com`, you can enter `gemini-3-pro-image-preview`.
+- These models support both standard image generation and compatibility modes.
 
 ### 💬 OpenAI Text Node (`flexai:openai_text`)
 **Multimodal Support:**
@@ -105,7 +111,7 @@ OPENAI_API_BASE_custom=https://your-api.example.com/v1
 | `model` | String | Model name (e.g., `dall-e-3`, `dall-e-2`) |
 | `prompt` | String | Generation/editing prompt |
 | `image_1-4` | Image | Optional images (edit mode if any provided) |
-| `size` | String | Output size (e.g., `1024x1024`) |
+| `size` | String | Output size (e.g., `1024x1024`) <br><br> **Aspect Ratio Support**: For specific models like `nano-banana` and `nano-banana-pro` in **non-compatibility mode**, this field accepts aspect ratios. Supported ratios and their corresponding resolutions are:<br> `1x1` → `1024x1024` <br> `2x3` → `832x1248` <br> `3x2` → `1248x832` <br> `3x4` → `864x1184` <br> `4x3` → `1184x864` <br> `4x5` → `896x1152` <br> `5x4` → `1152x896` <br> `9x16` → `768x1344` <br> `16x9` → `1344x768` <br> `21x9` → `1536x672` |
 | `compatibility_mode` | Boolean | **Compatibility Mode**: Enable chat endpoint for image generation, compatible with OpenRouter and other third-party services |
 | `stream` | Boolean | Enable streaming mode |
 | `debug` | Boolean | **Enable detailed debug logging** |

@@ -91,7 +91,7 @@ class OpenAIImageNode:
                 "custom_model": ("STRING", {"default": "", "placeholder": "Enter new model (overrides selection and saves automatically)"}),
                 "prompt": ("STRING", {"multiline": True, "default": "A cute cat in watercolor."}),
                 "image_1": ("IMAGE",), "image_2": ("IMAGE",), "image_3": ("IMAGE",), "image_4": ("IMAGE",),
-                "size": ("STRING", {"default": "1024x1024"}),
+                "size": ("STRING", {"default": "", "placeholder": "Optional, e.g., 1024x1024"}),
                 "compatibility_mode": ("BOOLEAN", {"default": False, "tooltip": "Enable compatibility mode for services like OpenRouter via chat endpoints."}),
                 "streaming": ("BOOLEAN", {"default": False, "tooltip": "Enable streaming for compatibility mode."}),
                 "debug": ("BOOLEAN", {"default": False}),
@@ -102,9 +102,14 @@ class OpenAIImageNode:
     FUNCTION = "execute"
     CATEGORY = "flexai"
 
-    def execute(self, provider, model, prompt, size="1024x1024", compatibility_mode=False, streaming=False, debug=False, custom_model="", **kwargs):
+    def execute(self, provider, model, prompt, size="", compatibility_mode=False, streaming=False, debug=False, custom_model="", **kwargs):
         """Main execution function, dispatches to generation or editing based on mode."""
         try:
+            # Handle empty size input
+            final_size = size.strip()
+            if not final_size and not compatibility_mode:
+                final_size = "1024x1024"  # Default for native mode
+
             # Determine the final model name to use
             final_model = custom_model.strip() if custom_model and custom_model.strip() else model
             if custom_model.strip():
@@ -115,10 +120,10 @@ class OpenAIImageNode:
 
             if compatibility_mode:
                 if debug: debug_log("Running in Compatibility Mode (Chat).")
-                pil_images = self._run_chat_mode(client, final_model, prompt, images, size, streaming, debug)
+                pil_images = self._run_chat_mode(client, final_model, prompt, images, final_size, streaming, debug)
             else:
                 if debug: debug_log("Running in Native Mode (Image API).")
-                pil_images = self._run_native_mode(client, final_model, prompt, images, size, debug)
+                pil_images = self._run_native_mode(client, final_model, prompt, images, final_size, debug)
             
             return (pil_to_tensor(pil_images),)
 
@@ -237,7 +242,11 @@ class OpenAIImageNode:
 
     def _build_chat_messages(self, prompt: str, images: List, size: str, debug: bool) -> List[Dict]:
         """Builds the message body for Chat mode."""
-        content = [{"type": "text", "text": f"{prompt}\n\nImage size requirement: {size}"}]
+        prompt_text = prompt
+        if size:
+            prompt_text = f"{prompt}\n\nImage size: {size}"
+        
+        content = [{"type": "text", "text": prompt_text}]
         
         for i, tensor in enumerate(images):
             if debug: debug_log(f"Encoding image {i+1}/{len(images)} for chat.")
