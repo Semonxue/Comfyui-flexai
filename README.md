@@ -3,7 +3,7 @@ English | [中文 / Chinese](README-zh.md)
 
 # ComfyUI FlexAI Plugin
 
-[![Version](https://img.shields.io/badge/version-1.0.7-blue.svg)](https://github.com/your-repo/Comfyui-flexai)
+[![Version](https://img.shields.io/badge/version-1.0.7-blue.svg)](https://github.com/Semonxue/Comfyui-flexai)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 A modern, unified ComfyUI plugin for OpenAI-compatible APIs with enhanced debugging and dual-mode image processing capabilities.
@@ -62,7 +62,7 @@ I wrote this plugin mainly to simplify my own workflow, allowing access to LLM o
 1. Clone to ComfyUI custom nodes:
    ```bash
    cd ComfyUI/custom_nodes
-   git clone https://github.com/your-repo/Comfyui-flexai.git
+   git clone https://github.com/Semonxue/Comfyui-flexai.git
    ```
 
 2. Install dependencies:
