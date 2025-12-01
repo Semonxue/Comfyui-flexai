@@ -3,7 +3,7 @@
 
 # ComfyUI FlexAI 插件
 
-[![版本](https://img.shields.io/badge/版本-1.0.7-blue.svg)](https://github.com/your-repo/Comfyui-flexai)
+[![版本](https://img.shields.io/badge/版本-1.0.7-blue.svg)](https://github.com/Semonxue/Comfyui-flexai)
 [![许可](https://img.shields.io/badge/许可-MIT-green.svg)](LICENSE)
 
 现代化的统一 ComfyUI 插件，支持 OpenAI 兼容 API，具备增强调试功能和双模式图像处理能力。
@@ -64,7 +64,7 @@
 1. 克隆到 ComfyUI 自定义节点目录：
    ```bash
    cd ComfyUI/custom_nodes
-   git clone https://github.com/your-repo/Comfyui-flexai.git
+   git clone https://github.com/Semonxue/Comfyui-flexai.git
    ```
 
 2. 安装依赖：
