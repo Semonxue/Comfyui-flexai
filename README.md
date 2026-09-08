@@ -11,6 +11,7 @@ A modern, unified ComfyUI plugin for OpenAI-compatible APIs with enhanced debugg
 I wrote this plugin mainly to simplify my own workflow, allowing access to LLM or image generation through standardized OpenAI interfaces. Recently, I've been mainly using this node to play with Gemini-2.5-Flash-Image generation (haven't tested the official Gemini interface, I'm connecting to an OpenAI-compatible endpoint), and the results are quite good.
 
 ## Recent Updates
+- 2025-??-?? **Aspect Ratio Labels**: All size presets in the image node now include visual aspect ratio annotations, e.g. `1254x1254(1:1,1K)`, `1024x1536(2:3,1K)`, `1672x941(16:9,1K)`.
 - 2025-11-21 v1.0.7 **New Models & Aspect Ratio Support**: Added support for models like `nano-banana` and `nano-banana-pro`, and allows using aspect ratios for size in non-compatibility mode.
 ![](thumb/flexai-image-nanobananapro.jpg)
 - 2025-9-13 v1.0.6 The image node now supports JPG type for image URI content to be compatible with some seedream4 API requests.
@@ -112,7 +113,7 @@ OPENAI_API_BASE_custom=https://your-api.example.com/v1
 | `model` | String | Model name (e.g., `dall-e-3`, `dall-e-2`) |
 | `prompt` | String | Generation/editing prompt |
 | `image_1-4` | Image | Optional images (edit mode if any provided) |
-| `size` | String | Output size (e.g., `1024x1024`) <br><br> **Aspect Ratio Support**: For specific models like `nano-banana` and `nano-banana-pro` in **non-compatibility mode**, this field accepts aspect ratios. Supported ratios and their corresponding resolutions are:<br> `1x1` → `1024x1024` <br> `2x3` → `832x1248` <br> `3x2` → `1248x832` <br> `3x4` → `864x1184` <br> `4x3` → `1184x864` <br> `4x5` → `896x1152` <br> `5x4` → `1152x896` <br> `9x16` → `768x1344` <br> `16x9` → `1344x768` <br> `21x9` → `1536x672` |
+| `size` | Choice/String | Output size preset with aspect ratio label (e.g. `1254x1254(1:1,1K)`, `1024x1536(2:3,1K)`, `1672x941(16:9,1K)`). The dropdown offers all common ratios across 1K/2K/4K tiers. Use `custom_size` for free-form input. <br><br> **Aspect Ratio Support**: For specific models like `nano-banana` and `nano-banana-pro` in **non-compatibility mode**, this field accepts aspect ratios. Supported ratios and their corresponding resolutions are:<br> `1x1` → `1024x1024` <br> `2x3` → `832x1248` <br> `3x2` → `1248x832` <br> `3x4` → `864x1184` <br> `4x3` → `1184x864` <br> `4x5` → `896x1152` <br> `5x4` → `1152x896` <br> `9x16` → `768x1344` <br> `16x9` → `1344x768` <br> `21x9` → `1536x672` |
 | `compatibility_mode` | Boolean | **Compatibility Mode**: Enable chat endpoint for image generation, compatible with OpenRouter and other third-party services |
 | `stream` | Boolean | Enable streaming mode |
 | `debug` | Boolean | **Enable detailed debug logging** |
