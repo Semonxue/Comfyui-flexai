@@ -11,7 +11,7 @@ A modern, unified ComfyUI plugin for OpenAI-compatible APIs with enhanced debugg
 I wrote this plugin mainly to simplify my own workflow, allowing access to LLM or image generation through standardized OpenAI interfaces. Recently, I've been mainly using this node to play with Gemini-2.5-Flash-Image generation (haven't tested the official Gemini interface, I'm connecting to an OpenAI-compatible endpoint), and the results are quite good.
 
 ## Recent Updates
-- 2025-??-?? **Aspect Ratio Labels**: All size presets in the image node now include visual aspect ratio annotations, e.g. `1254x1254(1:1,1K)`, `1024x1536(2:3,1K)`, `1672x941(16:9,1K)`.
+- 2026-9-7 **Aspect Ratio Labels**: All size presets in the image node now include visual aspect ratio annotations, e.g. `1254x1254(1:1,1K)`, `1024x1536(2:3,1K)`, `1672x941(16:9,1K)`.
 - 2025-11-21 v1.0.7 **New Models & Aspect Ratio Support**: Added support for models like `nano-banana` and `nano-banana-pro`, and allows using aspect ratios for size in non-compatibility mode.
 ![](thumb/flexai-image-nanobananapro.jpg)
 - 2025-9-13 v1.0.6 The image node now supports JPG type for image URI content to be compatible with some seedream4 API requests.
