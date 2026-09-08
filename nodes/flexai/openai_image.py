@@ -96,7 +96,7 @@ except ImportError:
 _IMAGE_CONFIG_MODELS = ("nano-banana", "gemini-3-pro-image", "gemini-2.5-flash-image")
 
 # Size presets for the dropdown.
-# Each preset is "<WxH or K-spec> (resolution level)".
+# Each preset is "<WxH>(<aspect-ratio>,<resolution-level>)".
 # The "(...)" suffix is purely descriptive — it's stripped before parsing
 # or forwarding to the API.
 #
@@ -104,44 +104,44 @@ _IMAGE_CONFIG_MODELS = ("nano-banana", "gemini-3-pro-image", "gemini-2.5-flash-i
 # billing expression (size 1K tier). 2K = 1K * 2, 4K = 1K * 4 per side.
 _SIZE_PRESETS = [
     # 1:1
-    "1254x1254 (1K)",
-    "2508x2508 (2K)",
-    "5016x5016 (4K)",
+    "1254x1254(1:1,1K)",
+    "2508x2508(1:1,2K)",
+    "5016x5016(1:1,4K)",
     # 2:3 / 3:2
-    "1024x1536 (1K)",
-    "2048x3072 (2K)",
-    "4096x6144 (4K)",
-    "1536x1024 (1K)",
-    "3072x2048 (2K)",
-    "6144x4096 (4K)",
+    "1024x1536(2:3,1K)",
+    "2048x3072(2:3,2K)",
+    "4096x6144(2:3,4K)",
+    "1536x1024(3:2,1K)",
+    "3072x2048(3:2,2K)",
+    "6144x4096(3:2,4K)",
     # 3:4 / 4:3
-    "1086x1448 (1K)",
-    "2172x2896 (2K)",
-    "4344x5792 (4K)",
-    "1448x1086 (1K)",
-    "2896x2172 (2K)",
-    "5792x4344 (4K)",
+    "1086x1448(3:4,1K)",
+    "2172x2896(3:4,2K)",
+    "4344x5792(3:4,4K)",
+    "1448x1086(4:3,1K)",
+    "2896x2172(4:3,2K)",
+    "5792x4344(4:3,4K)",
     # 4:5 / 5:4
-    "1122x1402 (1K)",
-    "2244x2804 (2K)",
-    "4488x5608 (4K)",
-    "1402x1122 (1K)",
-    "2804x2244 (2K)",
-    "5608x4488 (4K)",
+    "1122x1402(4:5,1K)",
+    "2244x2804(4:5,2K)",
+    "4488x5608(4:5,4K)",
+    "1402x1122(5:4,1K)",
+    "2804x2244(5:4,2K)",
+    "5608x4488(5:4,4K)",
     # 16:9 / 9:16
-    "1672x941 (1K)",
-    "3344x1882 (2K)",
-    "6688x3764 (4K)",
-    "941x1672 (1K)",
-    "1882x3344 (2K)",
-    "3764x6688 (4K)",
+    "1672x941(16:9,1K)",
+    "3344x1882(16:9,2K)",
+    "6688x3764(16:9,4K)",
+    "941x1672(9:16,1K)",
+    "1882x3344(9:16,2K)",
+    "3764x6688(9:16,4K)",
     # 21:9 / 9:21
-    "1915x821 (1K)",
-    "3830x1642 (2K)",
-    "7660x3284 (4K)",
-    "821x1915 (1K)",
-    "1642x3830 (2K)",
-    "3284x7660 (4K)",
+    "1915x821(21:9,1K)",
+    "3830x1642(21:9,2K)",
+    "7660x3284(21:9,4K)",
+    "821x1915(9:21,1K)",
+    "1642x3830(9:21,2K)",
+    "3284x7660(9:21,4K)",
 ]
 
 
@@ -169,9 +169,19 @@ def _parse_size_to_image_config(size: str):
     if not size:
         return None
     raw = size.strip()
-    # Extract trailing "(<level>)" annotation if present.
+    # Extract trailing "(<annotation>)" if present.
+    # Annotation format can be "<level>" (legacy, e.g. "1K") or
+    # "<ratio>,<level>" (new, e.g. "1:1,1K").
     ann_match = re.search(r"\(([^)]+)\)\s*$", raw)
-    annotation = ann_match.group(1).strip().upper() if ann_match else None
+    annotation_raw = ann_match.group(1).strip() if ann_match else None
+
+    # Determine resolution level from annotation.
+    # New format: "(1:1,1K)" → level = "1K"
+    # Legacy format: "(1K)" → level = "1K"
+    resolution_level = None
+    if annotation_raw:
+        parts = annotation_raw.split(",")
+        resolution_level = parts[-1].strip().upper()
 
     # Strip the annotation for further parsing.
     s = re.sub(r"\s*\([^)]*\)\s*$", "", raw).lower().replace(" ", "")
@@ -189,8 +199,8 @@ def _parse_size_to_image_config(size: str):
         return None
 
     # Honour the user's annotation if it looks like a resolution level.
-    if annotation in {"1K", "2K", "4K"}:
-        image_size = annotation
+    if resolution_level in {"1K", "2K", "4K"}:
+        image_size = resolution_level
     else:
         # Fall back to pixel-based bucketing.
         pixels = w * h
@@ -522,10 +532,11 @@ if _V3_AVAILABLE:
                     _v3_io.Combo.Input(
                         "size",
                         options=_SIZE_PRESETS,
-                        default="1024x1024 (1K)",
+                        default="1254x1254(1:1,1K)",
                         optional=True,
                         tooltip=(
-                            "Output size preset. Format: '<WxH or 1K/2K/4K> (<level>)'. "
+                            "Output size preset including aspect ratio. "
+                            "Format: '<WxH>(<ratio>,<level>)', e.g. '1254x1254(1:1,1K)'. "
                             "For nano-banana / gemini-*-image-*, parsed into imageConfig "
                             "(imageSize + aspectRatio) automatically."
                         ),
@@ -573,7 +584,7 @@ if _V3_AVAILABLE:
             image_2=None,
             image_3=None,
             image_4=None,
-            size: str = "1024x1024 (1K)",
+            size: str = "1254x1254(1:1,1K)",
             custom_size: str = "",
             compatibility_mode: bool = False,
             streaming: bool = False,
@@ -645,9 +656,9 @@ else:
                     "prompt": ("STRING", {"multiline": True, "default": "A cute cat in watercolor."}),
                     "image_1": ("IMAGE",), "image_2": ("IMAGE",), "image_3": ("IMAGE",), "image_4": ("IMAGE",),
                     "size": ("STRING", {
-                        "default": "1024x1024 (1K)",
+                        "default": "1254x1254(1:1,1K)",
                         "multiline": False,
-                        "placeholder": "1024x1024 (1K), 3072x2048 (4K), 2K, 4K, 16:9, ...",
+                        "placeholder": "1254x1254(1:1,1K), 1024x1536(2:3,1K), 2K, 4K, 16:9, ...",
                     }),
                     "custom_size": ("STRING", {
                         "default": "",
@@ -664,7 +675,7 @@ else:
         FUNCTION = "execute"
         CATEGORY = "flexai"
 
-        def execute(self, provider, model, prompt, size="1024x1024 (1K)", custom_size="", compatibility_mode=False, streaming=False, debug=False, custom_model="", **kwargs):
+        def execute(self, provider, model, prompt, size="1254x1254(1:1,1K)", custom_size="", compatibility_mode=False, streaming=False, debug=False, custom_model="", **kwargs):
             try:
                 preset = (size or "").strip()
                 preset_clean = re.sub(r"\s*\([^)]*\)\s*$", "", preset)
