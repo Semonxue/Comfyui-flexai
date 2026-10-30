@@ -10,8 +10,9 @@ import json
 _PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 _MODELS_JSON_FILE = os.path.join(_PLUGIN_ROOT, 'flexai_models.json')
 _DEFAULT_MODELS = {
-    "flexai_image_models": ["dall-e-3", "dall-e-2"],
-    "flexai_text_models": ["gpt-4o", "gpt-4-turbo", "gpt-3.5-turbo"]
+    "flexai_image_models": ["gpt-image-2.5", "gpt-image-2", "nano-banana-pro"],
+    "flexai_text_models": ["gpt-4o", "minimax-m3"],
+    "flexai_video_models": ["sora-2", "sora-2-pro"],
 }
 
 # -- Public Functions --

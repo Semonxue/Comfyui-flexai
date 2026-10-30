@@ -49,7 +49,7 @@ class OpenAITextNode:
         return {
             "required": {
                 "provider": (provider_names, {"default": provider_names[0]}),
-                "model": (models, {"default": models[0] if models else "gpt-4"}),
+                "model": (models, {"default": models[0] if models else "gpt-4o"}),
                 "custom_model": ("STRING", {"default": "", "placeholder": "Enter new model (overrides selection and saves automatically)"}),
                 "temperature": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 2.0, "step": 0.1}),
                 "system_prompt": ("STRING", {"default": "You are a helpful assistant.", "multiline": False}),

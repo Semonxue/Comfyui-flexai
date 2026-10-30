@@ -495,7 +495,7 @@ if _V3_AVAILABLE:
                 category="flexai",
                 description=(
                     "OpenAI-compatible image generation/editing. Supports nano-banana, "
-                    "gpt-image-1, dall-e-3, etc. For nano-banana / gemini-*-image-* the "
+                    "gpt-image-2, seedream, etc. For nano-banana / gemini-*-image-* the "
                     "selected size is translated into Gemini's imageConfig "
                     "(imageSize + aspectRatio) so 2K/4K actually takes effect."
                 ),
@@ -509,7 +509,7 @@ if _V3_AVAILABLE:
                     _v3_io.Combo.Input(
                         "model",
                         options=models,
-                        default=models[0] if models else "dall-e-3",
+                        default=models[0] if models else "gpt-image-2",
                         tooltip="Image model.",
                     ),
                     _v3_io.String.Input(
@@ -649,7 +649,7 @@ else:
             return {
                 "required": {
                     "provider": (provider_names, {"default": provider_names[0]}),
-                    "model": (models, {"default": models[0] if models else "dall-e-3"}),
+                    "model": (models, {"default": models[0] if models else "gpt-image-2"}),
                 },
                 "optional": {
                     "custom_model": ("STRING", {"default": "", "placeholder": "Enter new model (overrides selection and saves automatically)"}),
