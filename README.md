@@ -47,9 +47,9 @@ I wrote this plugin mainly to simplify my own workflow, allowing access to LLM o
 - You can call them directly via the `custom_model` field. For instance, when using services like `api.tu-zi.com`, you can enter `gemini-3-pro-image-preview`.
 - These models support both standard image generation and compatibility modes.
 
-### 🎬 Seedance Video Node (`flexai:openai_video`)
+### 🎬 OpenAI Video Node (`flexai:openai_video`)
 
-Video generation for **Seedance 2.0 / 2.0 Fast / 2.0 Mini / 2.5** through an OpenAI-compatible gateway (`/v1/videos`, e.g. tu-zi / new-api). Returns a native **`VIDEO`** output, so clips feed `SaveVideo` or `Get Video Components` without ever being materialized as frame tensors.
+Generic video node for OpenAI-compatible gateways (`/v1/videos`, e.g. tu-zi / new-api). Returns a native **`VIDEO`** output, so clips feed `SaveVideo` or `Get Video Components` without ever being materialized as frame tensors. **Seedance 2.0 / 2.0 Fast / 2.0 Mini / 2.5** currently get family-level parameter rules; other model families use the permissive legacy path (see Compatibility).
 
 **Five generation modes** (`reference_mode` picks the image role; `auto` infers it from how many images are connected):
 

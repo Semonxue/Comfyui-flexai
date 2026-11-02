@@ -1,4 +1,4 @@
-"""OpenAIVideoNode - Seedance / OpenAI-compatible video generation (FlexAI plugin).
+"""OpenAIVideoNode - OpenAI-compatible video generation (ComfyUI FlexAI plugin).
 
 Features:
   - Text-to-video, first-frame, first/last-frame and multi-subject reference
@@ -967,16 +967,17 @@ if _V3_AVAILABLE:
             models = _model_names()
             return _v3_io.Schema(
                 node_id="flexai:openai_video",
-                display_name="Seedance Video (FlexAI)",
+                display_name="OpenAI Video (FlexAI)",
                 category="flexai",
                 description=(
-                    "Seedance 2.0 / 2.0 Fast / 2.0 Mini / 2.5 video generation through an "
-                    "OpenAI-compatible /v1/videos gateway. Sends ratio + resolution + "
-                    "duration + generate_audio with per-family rules (upper-case tiers, "
-                    "SUPER_* upscaling, duration clamping, 2.5 auto ratio=adaptive). "
-                    "Up to 4 reference images as first_frame / last_frame / reference_image, "
-                    "plus reference video (videoExtend on 2.5) and reference audio. Polls "
-                    "the async job and returns a native VIDEO output."
+                    "Video generation through an OpenAI-compatible /v1/videos gateway "
+                    "(Seedance 2.0/2.5 today, other model families via the legacy path). "
+                    "Sends ratio + resolution + duration + generate_audio; Seedance family "
+                    "rules are applied automatically (upper-case tiers, SUPER_* upscaling, "
+                    "duration clamping, 2.5 auto ratio=adaptive), other models keep the "
+                    "permissive parameter set. Up to 4 reference images as first_frame / "
+                    "last_frame / reference_image, plus reference video (videoExtend on 2.5) "
+                    "and reference audio. Polls the async job and returns a native VIDEO output."
                 ),
                 inputs=[
                     _v3_io.Combo.Input(

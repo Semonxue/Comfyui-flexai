@@ -47,9 +47,9 @@
 - 您可以通过 `custom_model` 字段直接调用，例如，在使用 `api.tu-zi.com` 服务时，可以填入 `gemini-3-pro-image-preview` 来使用。
 - 这些模型同时支持标准的生图模式和兼容模式。
 
-### 🎬 Seedance 视频节点 (`flexai:openai_video`)
+### 🎬 OpenAI 视频节点 (`flexai:openai_video`)
 
-面向 **Seedance 2.0 / 2.0 Fast / 2.0 Mini / 2.5** 的视频生成节点，走 OpenAI 兼容网关的 `/v1/videos`（tu-zi、new-api 等），输出 ComfyUI 原生 **`VIDEO`**，可直接接 `SaveVideo`、`Get Video Components`（不落地成帧张量，长视频不爆内存）。
+OpenAI 兼容网关通用的视频节点（`/v1/videos`，如 tu-zi、new-api 等），输出 ComfyUI 原生 **`VIDEO`**，可直接接 `SaveVideo`、`Get Video Components`（不落地成帧张量，长视频不爆内存）。目前已针对 **Seedance 2.0 / 2.0 Fast / 2.0 Mini / 2.5** 做了家族级参数适配；其它视频模型走宽松参数路径（见下方「兼容性」）。
 
 **五种生成模式**（图片角色由 `reference_mode` 决定，`auto` 时按接入数量自动推断）：
 
