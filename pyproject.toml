@@ -1,7 +1,7 @@
 [project]
 name = "flexai"
 description = "Use the fewest nodes for the most flexible model calls. A versatile ComfyUI plugin for OpenAI-compatible APIs, featuring multi-purpose nodes for text, image and video, support for switching between multiple API providers, and auto-saving of custom models. Compatible with new models like nano-banana, seedream4 and sora-2."
-version = "1.3.0"
+version = "1.3.1"
 license = {file = "LICENSE"} 
 # classifiers = [
 #     # For OS-independent nodes (works on all operating systems)

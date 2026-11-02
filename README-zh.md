@@ -3,7 +3,7 @@
 
 # ComfyUI FlexAI 插件
 
-[![版本](https://img.shields.io/badge/版本-1.3.0-blue.svg)](https://github.com/Semonxue/Comfyui-flexai)
+[![版本](https://img.shields.io/badge/版本-1.3.1-blue.svg)](https://github.com/Semonxue/Comfyui-flexai)
 [![许可](https://img.shields.io/badge/许可-MIT-green.svg)](LICENSE)
 
 现代化的统一 ComfyUI 插件，支持 OpenAI 兼容 API，具备增强调试能力，以及文本、图像、视频三类多用途节点。
@@ -11,6 +11,7 @@
 写这个插件主要为了简化自己的工作，通过标准化的openai接口就可是接入llm或图片生成，最近用这个节点主要在玩 gemini-2.5-flash-image 的生成（没测过gemini官方接口，我接的是openai兼容端点），效果还不错。
 
 ## 最近更新
+- 2026-11-02 1.3.1 **新增 MiniMax H3 / Veo 3.1 兼容**：同一 `/v1/videos` 入口下按模型自动切换参数形态——`MiniMax-H3` 使用 `768P`/`2K` 档位、4~15s 整数时长，并禁止「首尾帧」与「多模态参考」混用；`veo3.1*` 仅接受 `16:9`/`9:16`、`720p`/`1080p`/`4k`，时长自动吸附到 4/6/8s，分辨率小写发送。非 Seedance 模型不再发送 `refer_model`/`generate_audio`/`watermark`/`output_format` 这些 Seedance 专用字段。
 - 2026-10-30 1.3.0 **Seedance 2.0 及以上全量对齐**：按模型家族（2.0 / 2.0 Fast / 2.0 Mini / 2.5）自动套用协议规则——分辨率档位与 `SUPER_*` 超分按家族校验并大写发送；`duration` 超出范围自动收敛（2.0 系列 4~15s、2.5 4~30s）；2.5 的单图/首尾帧自动把 `ratio` 置为 `adaptive`；新增 `output_format`（2.5 的 mp4/mov）、`reference_video`（URL/`asset://`，2.5 单视频自动 `videoExtend`）、`reference_audio`（URL/`asset://`/mp3-wav data URI），`content[]` 现在可混合 图片 + 视频 + 音频 三类参考素材。1.0/1.5 不再专门适配（走宽松兼容逻辑）。
 - 2026-10-30 1.2.0 **支持多参考图 / 多主体参考（Seedance 语义）**：节点新增 `image_2` / `image_3` / `image_4` 三个图像槽与 `reference_mode`，按 Seedance 的 `content[]` + `role` 规则发送：1 张图→`imageToVideo`（role `first_frame`），首帧+尾帧→`firstAndLastFrame`（`first_frame` / `last_frame`），2 张及以上→`referToVideo`（全部 role `reference_image`），并显式带上 `refer_model`。参考图**不会**被拉伸到输出尺寸（只有首/尾帧会按档位预缩放），超过 6000px 的长边会自动缩小到 Seedance 限制内。单图仍保留 `input_reference` / multipart 兼容回退。
 - 2026-10-30 1.1.1 **视频尺寸改为「分辨率档位 + 画幅比例」**：视频模型并不按像素出图（tu-zi / 火山 Seedance 的请求体是 `{"resolution":"720p","ratio":"16:9","duration":8}`），旧版发 `size` 像素对会被网关忽略、导致无论选什么都输出默认尺寸。现改为 `ratio`（16:9/9:16/1:1/4:3/3:4/21:9/adaptive）+ `resolution`（480p/720p/1080p/4k）+ `duration`（整数秒）+ `generate_audio` / `watermark`；`size` 仅在显式填写 `custom_size` 或使用 Sora 系模型时作为兼容字段发送。同时按「完整扁平参数 → 大写分辨率 → Seedance 原生 `content[]` → 最小 OpenAI 体 → multipart」逐级降级，图片依次尝试 JSON `input_reference`(data URI) / `content[]` 图片项 / multipart 上传。
@@ -68,6 +69,8 @@ OpenAI 兼容网关通用的视频节点（`/v1/videos`，如 tu-zi、new-api �
 | Seedance 2.0 | `480P` `720P` `1080P` `4K` `SUPER_720P/1080P/4K` | 4–15s | 支持 `super_*` 超分 |
 | Seedance 2.0 Fast / Mini | `480P` `720P` `SUPER_720P/1080P/4K` | 4–15s | **不支持** `1080P`/`4K` 原生档位 |
 | Seedance 2.5 | `480P` `720P` `1080P` | 4–30s | 首帧/首尾帧自动 `ratio=adaptive`；`output_format` 支持 `mp4`/`mov`；支持视频延展 |
+| MiniMax H3 | `768P` `2K` | 4–15s | 首尾帧模式不可与视频/音频参考或多图混用；参考上限 图≤9、视频≤3、音频≤3 |
+| Veo 3.1 | `720p` `1080p` `4k`（小写） | 4 / 6 / 8s（自动吸附） | 仅 `16:9` / `9:16`；不支持 `adaptive`、`super_*` |
 
 **几何模型**：视频输出不是像素概念，而是 `resolution`（档位，短边=档位数字）+ `ratio`（画幅，含 `adaptive`）+ `duration`（整数秒）。节点按家族校验后以大写发送（`720P`/`SUPER_4K`…），时长超出范围自动收敛；像素 `size` 仅作为 Sora 等旧渠道的兼容字段（填了 `custom_size` 或模型名含 `sora` 才发送）。
 
@@ -171,7 +174,7 @@ OPENAI_API_BASE_custom=https://your-api.example.com/v1
 | `image` / `image_2` / `image_3` / `image_4` | 图片 | 最多 4 个参考图输入槽，按 `reference_mode` 的规则作为首帧 / 尾帧 / 参考主体发送（Seedance 走 `content[]` 条目，每条带 `role`） |
 | `reference_mode` | 选择 | 多图角色规则（默认 `auto`）：`auto` 1 张→首帧（`imageToVideo`），2 张及以上→多主体参考（`referToVideo`，role `reference_image`）；`first_frame` 只用第 1 槽当首帧；`first_last_frame` 第 1 槽=首帧、第 2 槽=尾帧（`firstAndLastFrame`）；`reference` 全部当参考主体 |
 | `ratio` | 选择 | **画幅比例**（默认 `16:9`）：`16:9`、`9:16`、`1:1`、`4:3`、`3:4`、`21:9`、`adaptive`。直接作为 `ratio` 字段发送；`adaptive` 表示让模型按参考图自己定 |
-| `resolution` | 选择 | **分辨率档位**（默认 `720p`），按模型家族校验后以大写发送（`720P`/`1080P`/`SUPER_720P`…）：Seedance 2.0 → `480p`/`720p`/`1080p`/`4k` + `super_720p`/`super_1080p`/`super_4k`；2.0 Fast/Mini → 仅 `480p`/`720p` + `super_*`；2.5 → `480p`/`720p`/`1080p`。选了不支持的档位会直接报错并列出可用值 |
+| `resolution` | 选择 | **分辨率档位**（默认 `720p`），按模型家族校验后以大写发送（`720P`/`1080P`/`SUPER_720P`…）：Seedance 2.0 → `480p`/`720p`/`1080p`/`4k` + `super_720p`/`super_1080p`/`super_4k`；2.0 Fast/Mini → 仅 `480p`/`720p` + `super_*`；2.5 → `480p`/`720p`/`1080p`；**MiniMax H3 → `768p`/`2k`**；**Veo 3.1 → `720p`/`1080p`/`4k`（小写发送）**。选了不支持的档位会直接报错并列出可用值 |
 | `custom_size` | 字符串 | 仅旧接口（Sora 那类必须吃像素 `size` 的渠道）需要，如 `1792x1024`；填了之后会自动反推 `ratio` / `resolution` |
 | `duration` | 整数 | 时长秒数（默认 8）：按整数 `duration` 发送（Sora 系额外发 `seconds`）。超出模型范围会**自动收敛**：Seedance 2.0 系列 4~15s、2.5 4~30s；`sora-2` 只接受 4/8/12 |
 | `generate_audio` | 布尔 | 作为 `generate_audio` 发送（Seedance 生成音轨），默认 True |

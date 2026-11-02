@@ -8,9 +8,11 @@ Features:
     a resolution tier (`resolution`: 480p/720p/1080p/4k + super_* upscaling)
     + an aspect ratio (`ratio`: 16:9 / 9:16 / 1:1 / 4:3 / 3:4 / 21:9 / adaptive)
     + `duration`. No pixel size is required; the model decides the pixels.
-  - Seedance family rules are enforced per model id (2.0, 2.0 fast/mini, 2.5):
-    allowed resolution tiers, duration range, 2.5's forced `ratio=adaptive` for
-    frame-driven runs, `output_format` and `videoExtend` availability.
+  - Family rules are enforced per model id (2.0, 2.0 fast/mini, 2.5, MiniMax H3,
+    Veo 3.1): allowed resolution tiers and wire casing, duration range or enum,
+    ratio whitelist, 2.5's forced `ratio=adaptive` for frame-driven runs,
+    `output_format` / `videoExtend` availability, and Seedance-only fields.
+    Unrecognised models keep the permissive legacy parameter set.
   - Async job handling: create -> poll status -> download content (MP4).
   - Tolerant response parsing, so third-party OpenAI-compatible proxies work too:
       * OpenAI/Sora style:   {"id": "video_123", "status": "queued"|"in_progress"|"completed"}
@@ -87,7 +89,10 @@ except ImportError:
 # So this node sends `ratio` + `resolution` (+ `duration`) and only derives a
 # nominal "WxH" for legacy OpenAI/Sora-style channels that require `size`.
 _VIDEO_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"]
-_VIDEO_RESOLUTIONS = ["480p", "720p", "1080p", "4k", "super_720p", "super_1080p", "super_4k"]
+_VIDEO_RESOLUTIONS = [
+    "480p", "720p", "768p", "1080p", "2k", "4k",
+    "super_720p", "super_1080p", "super_4k",
+]
 
 _DEFAULT_RATIO = "16:9"
 _DEFAULT_RESOLUTION = "720p"
@@ -95,7 +100,7 @@ _DEFAULT_DURATION = 8
 
 # Nominal short side per resolution tier (the shorter side equals this value).
 _RES_SHORT_SIDE = {
-    "480p": 480, "720p": 720, "1080p": 1080, "4k": 2160,
+    "480p": 480, "720p": 720, "768p": 768, "1080p": 1080, "2k": 1440, "4k": 2160,
     "super_720p": 720, "super_1080p": 1080, "super_4k": 2160,
 }
 
@@ -119,53 +124,125 @@ _SD20 = "seedance-2.0"
 _SD20_FAST = "seedance-2.0-fast"
 _SD20_MINI = "seedance-2.0-mini"
 _LEGACY = "legacy"
+# Non-Seedance families that still live on the same /v1/videos entry: only the
+# parameter names / enums differ, so they get a capability table rather than a
+# separate protocol (that is what MiniMax H3 and Veo 3.1 need).
+_MM_H3 = "minimax-h3"
+_VEO31 = "veo31"
+
+# Every family describes: which node-side resolution tiers it accepts, how those
+# map onto wire tokens, its duration window (or an explicit enum), the allowed
+# aspect ratios, and whether Seedance-only fields may be sent. Models that are
+# not recognised keep the permissive legacy table.
+_UPPER_WIRE = {
+    "480p": "480P", "720p": "720P", "1080p": "1080P", "4k": "4K",
+    "super_720p": "SUPER_720P", "super_1080p": "SUPER_1080P", "super_4k": "SUPER_4K",
+}
 
 _FAMILY_CAPS = {
     _SD25: {
         "label": "Seedance 2.5",
         "resolutions": ["480p", "720p", "1080p"],
+        "wire_resolution": _UPPER_WIRE,
+        "ratio_allowed": _VIDEO_RATIOS,
         "duration": (4, 30),
+        "duration_options": None,
         "default_ratio": "adaptive",
         "output_format": True,
         "video_extend": True,
         # 2.5 requires ratio=adaptive whenever a first/last frame is involved.
         "frames_need_adaptive": True,
+        "seedance_fields": True,
+        "mixed_refs_forbidden": False,
     },
     _SD20: {
         "label": "Seedance 2.0",
         "resolutions": ["480p", "720p", "1080p", "4k"] + _SUPER_RESOLUTIONS,
+        "wire_resolution": _UPPER_WIRE,
+        "ratio_allowed": _VIDEO_RATIOS,
         "duration": (4, 15),
+        "duration_options": None,
         "default_ratio": "16:9",
         "output_format": False,
         "video_extend": False,
         "frames_need_adaptive": False,
+        "seedance_fields": True,
+        "mixed_refs_forbidden": False,
     },
     _SD20_FAST: {
         "label": "Seedance 2.0 Fast",
         "resolutions": ["480p", "720p"] + _SUPER_RESOLUTIONS,
+        "wire_resolution": _UPPER_WIRE,
+        "ratio_allowed": _VIDEO_RATIOS,
         "duration": (4, 15),
+        "duration_options": None,
         "default_ratio": "16:9",
         "output_format": False,
         "video_extend": False,
         "frames_need_adaptive": False,
+        "seedance_fields": True,
+        "mixed_refs_forbidden": False,
     },
     _SD20_MINI: {
         "label": "Seedance 2.0 Mini",
         "resolutions": ["480p", "720p"] + _SUPER_RESOLUTIONS,
+        "wire_resolution": _UPPER_WIRE,
+        "ratio_allowed": _VIDEO_RATIOS,
         "duration": (4, 15),
+        "duration_options": None,
         "default_ratio": "16:9",
         "output_format": False,
         "video_extend": False,
         "frames_need_adaptive": False,
+        "seedance_fields": True,
+        "mixed_refs_forbidden": False,
+    },
+    # MiniMax H3 (gateway `openai-video` entry, released 2026-08): same flat
+    # body, but only 768P / 2K tiers and a 4-15s integer duration, and it must
+    # not mix a first/last-frame run with multimodal references.
+    _MM_H3: {
+        "label": "MiniMax H3",
+        "resolutions": ["768p", "2k"],
+        "wire_resolution": {"768p": "768P", "2k": "2K"},
+        "ratio_allowed": ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9", "adaptive"],
+        "duration": (4, 15),
+        "duration_options": None,
+        "default_ratio": "16:9",
+        "output_format": False,
+        "video_extend": False,
+        "frames_need_adaptive": False,
+        "seedance_fields": False,
+        "mixed_refs_forbidden": True,
+    },
+    # Veo 3.1 (gateway `veo3` async entry): 16:9 / 9:16 only, 720p/1080p/4k and
+    # a 4/6/8 s enum. Values are sent lower case.
+    _VEO31: {
+        "label": "Veo 3.1",
+        "resolutions": ["720p", "1080p", "4k"],
+        "wire_resolution": {"720p": "720p", "1080p": "1080p", "4k": "4k"},
+        "ratio_allowed": ["16:9", "9:16"],
+        "duration": (4, 8),
+        "duration_options": (4, 6, 8),
+        "default_ratio": "16:9",
+        "output_format": False,
+        "video_extend": False,
+        "frames_need_adaptive": False,
+        "seedance_fields": False,
+        "mixed_refs_forbidden": False,
     },
     _LEGACY: {
         "label": "non-Seedance / legacy channel",
         "resolutions": _VIDEO_RESOLUTIONS,
+        "wire_resolution": {value: value for value in _VIDEO_RESOLUTIONS},
+        "ratio_allowed": _VIDEO_RATIOS,
         "duration": (1, 60),
+        "duration_options": None,
         "default_ratio": "16:9",
         "output_format": False,
         "video_extend": False,
         "frames_need_adaptive": False,
+        "seedance_fields": False,
+        "mixed_refs_forbidden": False,
     },
 }
 
@@ -193,8 +270,24 @@ def _seedance_family(model: str) -> str:
     return _LEGACY
 
 
+def _video_family(model: str) -> str:
+    """Map a model id to its capability family.
+
+    Seedance 2.x ids resolve through :func:`_seedance_family`; MiniMax H3 and
+    Veo 3.1 are recognised here because they share the same `/v1/videos` entry
+    and only differ in parameter names / enums. Everything else stays legacy
+    (permissive), so adding a model never blocks an unknown channel.
+    """
+    name = (model or "").lower()
+    if "context" not in name and re.search(r"minimax[-_.\s]?h3", name):
+        return _MM_H3
+    if re.search(r"veo[-_.\s]?3[-_.\s]?1", name):
+        return _VEO31
+    return _seedance_family(model)
+
+
 def _caps_for(model: str) -> dict:
-    return _FAMILY_CAPS[_seedance_family(model)]
+    return _FAMILY_CAPS[_video_family(model)]
 
 
 def _wire_resolution(resolution: str, caps: dict) -> str:
@@ -206,12 +299,37 @@ def _wire_resolution(resolution: str, caps: dict) -> str:
             f"resolution '{resolution}' is not supported by {caps['label']}. "
             f"Supported: {', '.join(allowed)}."
         )
-    return _RESOLUTION_WIRE[value]
+    return caps["wire_resolution"][value]
+
+
+def _validate_ratio(ratio: str, caps: dict) -> str:
+    """Reject aspect ratios the family does not accept (e.g. 21:9 on Veo)."""
+    value = (ratio or caps.get("default_ratio") or _DEFAULT_RATIO).strip()
+    allowed = caps["ratio_allowed"]
+    if value not in allowed:
+        raise ValueError(
+            f"ratio '{ratio}' is not supported by {caps['label']}. "
+            f"Supported: {', '.join(allowed)}."
+        )
+    return value
 
 
 def _clamp_duration(duration, caps: dict, debug: bool) -> int:
-    low, high = caps["duration"]
     value = max(1, int(duration or _DEFAULT_DURATION))
+    options = caps.get("duration_options")
+    if options:
+        # Families with an explicit enum (Veo 3.1: 4/6/8 s) snap to the nearest
+        # allowed value instead of failing the whole run.
+        if value not in options:
+            nearest = min(options, key=lambda item: (abs(item - value), -item))
+            if debug:
+                debug_log(
+                    f"[video] duration {value}s is not one of {caps['label']}'s allowed "
+                    f"values {options}, using {nearest}s."
+                )
+            return nearest
+        return value
+    low, high = caps["duration"]
     if value < low or value > high:
         clamped = min(max(value, low), high)
         if debug:
@@ -589,6 +707,23 @@ def _plan_media(images, reference_mode: str, video_ref: str, audio_ref: str,
         else:
             mode = "text"
 
+    if caps.get("mixed_refs_forbidden"):
+        # MiniMax H3: a first/last-frame run and a multimodal-reference run are
+        # mutually exclusive modes upstream, so fail early with an actionable
+        # message instead of letting the gateway reject the request.
+        if mode in ("first_frame", "first_last_frame") and (video_url or audio_url):
+            raise ValueError(
+                f"{caps['label']} cannot combine a first/last-frame run with a reference "
+                "video or audio. Drop the extra reference, or set reference_mode to "
+                "'reference' to use the images as multimodal references."
+            )
+        if mode == "first_last_frame" and len(present) > 2:
+            raise ValueError(
+                f"{caps['label']} takes exactly 2 images for a first/last-frame run "
+                f"(got {len(present)}). Set reference_mode to 'reference' to use them as "
+                "reference images instead."
+            )
+
     if video_url and mode in ("auto", "reference"):
         if not present and not audio_url and caps["video_extend"]:
             # Seedance 2.5 video extension: exactly one reference video.
@@ -652,7 +787,8 @@ def _create_job(prov, model: str, prompt: str, ratio: str, resolution: str,
                 size: Optional[str], duration: int, generate_audio: Optional[bool],
                 watermark: Optional[bool], media_items: Optional[list],
                 refer_model: Optional[str], output_format: Optional[str],
-                debug: bool, legacy: bool = False) -> Tuple[int, Any]:
+                debug: bool, legacy: bool = False,
+                seedance_fields: bool = True) -> Tuple[int, Any]:
     """POST /v1/videos. Returns ``(status_code, payload)``.
 
     Flat generation parameters work for Seedance-style gateways (they read
@@ -678,14 +814,18 @@ def _create_job(prov, model: str, prompt: str, ratio: str, resolution: str,
         if legacy:
             # OpenAI/Sora-style: string `seconds`.
             fields["seconds"] = str(int(duration))
-    if generate_audio is not None:
-        fields["generate_audio"] = bool(generate_audio)
-    if watermark is not None:
-        fields["watermark"] = bool(watermark)
-    if refer_model:
-        fields["refer_model"] = refer_model
-    if output_format:
-        fields["output_format"] = output_format
+    # `generate_audio` / `watermark` / `refer_model` / `output_format` are
+    # Seedance-flavoured controls. MiniMax H3 / Veo 3.1 (and legacy channels)
+    # reject unknown keys, so only Seedance families may send them.
+    if seedance_fields:
+        if generate_audio is not None:
+            fields["generate_audio"] = bool(generate_audio)
+        if watermark is not None:
+            fields["watermark"] = bool(watermark)
+        if refer_model:
+            fields["refer_model"] = refer_model
+        if output_format:
+            fields["output_format"] = output_format
 
     request_summary = dict(fields)
     if media_items:
@@ -895,13 +1035,13 @@ def _generate_video(prov, model: str, prompt: str, ratio: str, resolution: str,
                     watermark: Optional[bool], media_items: Optional[list],
                     refer_model: Optional[str], output_format: Optional[str], *,
                     poll_interval: int, timeout: int, debug: bool,
-                    legacy: bool = False) -> bytes:
+                    legacy: bool = False, seedance_fields: bool = True) -> bytes:
     """Full create -> poll -> download flow. Returns raw MP4 bytes."""
     deadline = time.time() + max(int(timeout), poll_interval)
     status, payload = _create_job(
         prov, model, prompt, ratio, resolution, size, duration,
         generate_audio, watermark, media_items, refer_model, output_format,
-        debug, legacy=legacy,
+        debug, legacy=legacy, seedance_fields=seedance_fields,
     )
     log_api_interaction("Video Create Response", payload, debug)
 
@@ -970,14 +1110,16 @@ if _V3_AVAILABLE:
                 display_name="OpenAI Video (FlexAI)",
                 category="flexai",
                 description=(
-                    "Video generation through an OpenAI-compatible /v1/videos gateway "
-                    "(Seedance 2.0/2.5 today, other model families via the legacy path). "
-                    "Sends ratio + resolution + duration + generate_audio; Seedance family "
-                    "rules are applied automatically (upper-case tiers, SUPER_* upscaling, "
-                    "duration clamping, 2.5 auto ratio=adaptive), other models keep the "
-                    "permissive parameter set. Up to 4 reference images as first_frame / "
-                    "last_frame / reference_image, plus reference video (videoExtend on 2.5) "
-                    "and reference audio. Polls the async job and returns a native VIDEO output."
+                    "Video generation through an OpenAI-compatible /v1/videos gateway. "
+                    "Sends ratio + resolution + duration; per-family rules are applied "
+                    "automatically: Seedance 2.0 / 2.0 fast / 2.0 mini / 2.5 (upper-case "
+                    "tiers, SUPER_* upscaling, duration clamping, 2.5 auto ratio=adaptive), "
+                    "MiniMax H3 (768P/2K, 4-15s, no mixed first-last-frame run) and "
+                    "Veo 3.1 (16:9/9:16, 720p/1080p/4k, 4/6/8s). Up to 4 reference images "
+                    "as first_frame / last_frame / reference_image, plus reference video "
+                    "(videoExtend on 2.5) and reference audio. Other models keep the "
+                    "permissive legacy parameter set. Polls the async job and returns a "
+                    "native VIDEO output."
                 ),
                 inputs=[
                     _v3_io.Combo.Input(
@@ -991,12 +1133,16 @@ if _V3_AVAILABLE:
                         options=models,
                         default=next(
                             (mm for mm in models if _seedance_family(mm) != _LEGACY),
-                            models[0] if models else _DEFAULT_MODEL,
+                            next(
+                                (mm for mm in models if _video_family(mm) != _LEGACY),
+                                models[0] if models else _DEFAULT_MODEL,
+                            ),
                         ),
                         tooltip=(
-                            "Video model. Seedance 2.0 / 2.0 fast / 2.0 mini / 2.5 get the "
-                            "per-family resolution, duration and ratio rules enforced; other "
-                            "OpenAI-style channels fall back to permissive settings."
+                            "Video model. Seedance 2.0 / 2.0 fast / 2.0 mini / 2.5, MiniMax H3 "
+                            "and Veo 3.1 get their per-family resolution, duration and ratio "
+                            "rules enforced; any other OpenAI-style channel falls back to "
+                            "permissive settings."
                         ),
                     ),
                     _v3_io.String.Input(
@@ -1026,7 +1172,9 @@ if _V3_AVAILABLE:
                             "(imageToVideo), 2+ images -> multi-subject reference "
                             "(referToVideo, role reference_image). first_frame: only slot 1 as "
                             "first frame. first_last_frame: slot 1 = first frame, slot 2 = last "
-                            "frame. reference: every image is a reference subject."
+                            "frame. reference: every image is a reference subject. "
+                            "MiniMax H3 cannot mix a first/last-frame run with reference "
+                            "video/audio or with more than 2 images."
                         ),
                     ),
                     _v3_io.Combo.Input(
@@ -1035,9 +1183,9 @@ if _V3_AVAILABLE:
                         default=_DEFAULT_RATIO,
                         optional=True,
                         tooltip=(
-                            "Aspect ratio sent as `ratio` (Seedance) — the model picks the "
-                            "actual pixels. `adaptive` lets the model derive it from the "
-                            "reference image."
+                            "Aspect ratio sent as `ratio` — the model picks the actual "
+                            "pixels. `adaptive` lets it derive the shape from the reference "
+                            "media. Families restrict this: Veo 3.1 accepts 16:9 / 9:16 only."
                         ),
                     ),
                     _v3_io.Combo.Input(
@@ -1046,9 +1194,10 @@ if _V3_AVAILABLE:
                         default=_DEFAULT_RESOLUTION,
                         optional=True,
                         tooltip=(
-                            "Resolution tier sent as `resolution` (wire format is upper case, e.g. 720P). "
-                            "Seedance 2.0: 480p/720p/1080p/4k + super_* (super resolution output); "
-                            "2.0 fast/mini: 480p/720p + super_*; 2.5: 480p/720p/1080p. "
+                            "Resolution tier sent as `resolution`, upper case for Seedance "
+                            "(720P, SUPER_4K...). Seedance 2.0: 480p/720p/1080p/4k + super_*; "
+                            "2.0 fast/mini: 480p/720p + super_*; 2.5: 480p/720p/1080p; "
+                            "MiniMax H3: 768p/2k; Veo 3.1: 720p/1080p/4k (lower case). "
                             "Unsupported values are rejected with the allowed list."
                         ),
                     ),
@@ -1072,20 +1221,26 @@ if _V3_AVAILABLE:
                         tooltip=(
                             "Clip length in seconds, sent as integer `duration` (Seedance) and "
                             "string `seconds` (Sora-style). Seedance 2.0: 4-15s, 2.5: 4-30s; "
-                            "sora-2: 4/8/12."
+                            "MiniMax H3: 4-15s; Veo 3.1: snaps to 4/6/8s; sora-2: 4/8/12."
                         ),
                     ),
                     _v3_io.Boolean.Input(
                         "generate_audio",
                         default=True,
                         optional=True,
-                        tooltip="Sent as `generate_audio` (Seedance native audio track).",
+                        tooltip=(
+                            "Seedance only: sent as `generate_audio` (native audio track). "
+                            "Ignored for MiniMax H3 / Veo 3.1, which decide audio themselves."
+                        ),
                     ),
                     _v3_io.Boolean.Input(
                         "watermark",
                         default=False,
                         optional=True,
-                        tooltip="Sent as `watermark` (model-side watermark).",
+                        tooltip=(
+                            "Seedance only: sent as `watermark` (model-side watermark). "
+                            "Not forwarded for other families."
+                        ),
                     ),
                     _v3_io.Combo.Input(
                         "output_format",
@@ -1180,13 +1335,12 @@ if _V3_AVAILABLE:
                     (resolution or _DEFAULT_RESOLUTION).strip(),
                     explicit_size,
                 )
-                # Family-specific validations (Seedance 2.0 / 2.0 fast|mini / 2.5).
-                _wire_resolution(resolution_value, caps)  # raises for unsupported tiers
-                wire_resolution = (
-                    resolution_value
-                    if _seedance_family(final_model) == _LEGACY
-                    else _RESOLUTION_WIRE[resolution_value]
-                )
+                # Family-specific validation: each family maps the node-side
+                # resolution tier onto its own wire token (Seedance upper case,
+                # MiniMax 768P/2K, Veo lower case, legacy as-is) and only accepts
+                # its own aspect ratios.
+                wire_resolution = _wire_resolution(resolution_value, caps)
+                ratio_value = _validate_ratio(ratio_value, caps)
                 duration_value = _clamp_duration(duration, caps, debug)
 
                 # `size` is a legacy OpenAI/Sora-style field. Seedance-style
@@ -1216,6 +1370,10 @@ if _V3_AVAILABLE:
                 )
                 if ratio_override:
                     ratio_value = ratio_override
+                seedance_fields = bool(caps.get("seedance_fields"))
+                if not seedance_fields:
+                    # refer_model is a Seedance-only routing hint.
+                    refer_model = None
                 if media_items and not prompt.strip():
                     raise ValueError("A prompt is required when reference media is connected.")
 
@@ -1252,6 +1410,7 @@ if _V3_AVAILABLE:
                     timeout=int(timeout or 900),
                     debug=debug,
                     legacy=legacy,
+                    seedance_fields=seedance_fields,
                 )
                 if not video_bytes:
                     raise RuntimeError("Video generation returned no data.")
