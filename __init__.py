@@ -11,7 +11,7 @@ NODE_CLASS_MAPPINGS the comfy_entrypoint branch is *never* reached.
 Therefore the V3 nodes go through comfy_entrypoint and the text node is
 injected manually in on_load().
 """
-__version__ = "1.3.1"
+__version__ = "1.3.2"
 
 import os
 import sys

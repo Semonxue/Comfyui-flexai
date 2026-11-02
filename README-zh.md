@@ -3,7 +3,7 @@
 
 # ComfyUI FlexAI 插件
 
-[![版本](https://img.shields.io/badge/版本-1.3.1-blue.svg)](https://github.com/Semonxue/Comfyui-flexai)
+[![版本](https://img.shields.io/badge/版本-1.3.2-blue.svg)](https://github.com/Semonxue/Comfyui-flexai)
 [![许可](https://img.shields.io/badge/许可-MIT-green.svg)](LICENSE)
 
 现代化的统一 ComfyUI 插件，支持 OpenAI 兼容 API，具备增强调试能力，以及文本、图像、视频三类多用途节点。
@@ -11,6 +11,7 @@
 写这个插件主要为了简化自己的工作，通过标准化的openai接口就可是接入llm或图片生成，最近用这个节点主要在玩 gemini-2.5-flash-image 的生成（没测过gemini官方接口，我接的是openai兼容端点），效果还不错。
 
 ## 最近更新
+- 2026-11-02 1.3.2 **文档与版本发布**：参数表补齐 MiniMax H3 / Veo 3.1 的家族差异（`duration` 收敛规则、`generate_audio`/`watermark` 仅 Seedance 生效、`reference_mode` 在 H3 下的混用限制），版本号同步为 1.3.2；功能代码与 1.3.1 一致。
 - 2026-11-02 1.3.1 **新增 MiniMax H3 / Veo 3.1 兼容**：同一 `/v1/videos` 入口下按模型自动切换参数形态——`MiniMax-H3` 使用 `768P`/`2K` 档位、4~15s 整数时长，并禁止「首尾帧」与「多模态参考」混用；`veo3.1*` 仅接受 `16:9`/`9:16`、`720p`/`1080p`/`4k`，时长自动吸附到 4/6/8s，分辨率小写发送。非 Seedance 模型不再发送 `refer_model`/`generate_audio`/`watermark`/`output_format` 这些 Seedance 专用字段。
 - 2026-10-30 1.3.0 **Seedance 2.0 及以上全量对齐**：按模型家族（2.0 / 2.0 Fast / 2.0 Mini / 2.5）自动套用协议规则——分辨率档位与 `SUPER_*` 超分按家族校验并大写发送；`duration` 超出范围自动收敛（2.0 系列 4~15s、2.5 4~30s）；2.5 的单图/首尾帧自动把 `ratio` 置为 `adaptive`；新增 `output_format`（2.5 的 mp4/mov）、`reference_video`（URL/`asset://`，2.5 单视频自动 `videoExtend`）、`reference_audio`（URL/`asset://`/mp3-wav data URI），`content[]` 现在可混合 图片 + 视频 + 音频 三类参考素材。1.0/1.5 不再专门适配（走宽松兼容逻辑）。
 - 2026-10-30 1.2.0 **支持多参考图 / 多主体参考（Seedance 语义）**：节点新增 `image_2` / `image_3` / `image_4` 三个图像槽与 `reference_mode`，按 Seedance 的 `content[]` + `role` 规则发送：1 张图→`imageToVideo`（role `first_frame`），首帧+尾帧→`firstAndLastFrame`（`first_frame` / `last_frame`），2 张及以上→`referToVideo`（全部 role `reference_image`），并显式带上 `refer_model`。参考图**不会**被拉伸到输出尺寸（只有首/尾帧会按档位预缩放），超过 6000px 的长边会自动缩小到 Seedance 限制内。单图仍保留 `input_reference` / multipart 兼容回退。
@@ -172,13 +173,13 @@ OPENAI_API_BASE_custom=https://your-api.example.com/v1
 | `custom_model` | 字符串 | 临时改用其它模型，运行一次后自动写入模型列表 |
 | `prompt` | 字符串 | 视频提示词（必填，1~32000 字符） |
 | `image` / `image_2` / `image_3` / `image_4` | 图片 | 最多 4 个参考图输入槽，按 `reference_mode` 的规则作为首帧 / 尾帧 / 参考主体发送（Seedance 走 `content[]` 条目，每条带 `role`） |
-| `reference_mode` | 选择 | 多图角色规则（默认 `auto`）：`auto` 1 张→首帧（`imageToVideo`），2 张及以上→多主体参考（`referToVideo`，role `reference_image`）；`first_frame` 只用第 1 槽当首帧；`first_last_frame` 第 1 槽=首帧、第 2 槽=尾帧（`firstAndLastFrame`）；`reference` 全部当参考主体 |
+| `reference_mode` | 选择 | 多图角色规则（默认 `auto`）：`auto` 1 张→首帧（`imageToVideo`），2 张及以上→多主体参考（`referToVideo`，role `reference_image`）；`first_frame` 只用第 1 槽当首帧；`first_last_frame` 第 1 槽=首帧、第 2 槽=尾帧（`firstAndLastFrame`）；`reference` 全部当参考主体。**MiniMax H3 例外**：首尾帧模式不能与视频/音频参考混用，也不能超过 2 张图（会给出手动改 `reference` 的提示） |
 | `ratio` | 选择 | **画幅比例**（默认 `16:9`）：`16:9`、`9:16`、`1:1`、`4:3`、`3:4`、`21:9`、`adaptive`。直接作为 `ratio` 字段发送；`adaptive` 表示让模型按参考图自己定 |
 | `resolution` | 选择 | **分辨率档位**（默认 `720p`），按模型家族校验后以大写发送（`720P`/`1080P`/`SUPER_720P`…）：Seedance 2.0 → `480p`/`720p`/`1080p`/`4k` + `super_720p`/`super_1080p`/`super_4k`；2.0 Fast/Mini → 仅 `480p`/`720p` + `super_*`；2.5 → `480p`/`720p`/`1080p`；**MiniMax H3 → `768p`/`2k`**；**Veo 3.1 → `720p`/`1080p`/`4k`（小写发送）**。选了不支持的档位会直接报错并列出可用值 |
 | `custom_size` | 字符串 | 仅旧接口（Sora 那类必须吃像素 `size` 的渠道）需要，如 `1792x1024`；填了之后会自动反推 `ratio` / `resolution` |
-| `duration` | 整数 | 时长秒数（默认 8）：按整数 `duration` 发送（Sora 系额外发 `seconds`）。超出模型范围会**自动收敛**：Seedance 2.0 系列 4~15s、2.5 4~30s；`sora-2` 只接受 4/8/12 |
-| `generate_audio` | 布尔 | 作为 `generate_audio` 发送（Seedance 生成音轨），默认 True |
-| `watermark` | 布尔 | 作为 `watermark` 发送（模型侧水印），默认 False |
+| `duration` | 整数 | 时长秒数（默认 8）：按整数 `duration` 发送（Sora 系额外发 `seconds`）。超出模型范围会**自动收敛**：Seedance 2.0 系列 4~15s、2.5 4~30s；**MiniMax H3 4~15s**；**Veo 3.1 吸附到 4/6/8s**（如 5→6、9→8）；`sora-2` 只接受 4/8/12 |
+| `generate_audio` | 布尔 | **仅 Seedance 家族**：作为 `generate_audio` 发送（生成音轨），默认 True；MiniMax H3 / Veo 3.1 不转发该字段（音频由模型决定） |
+| `watermark` | 布尔 | **仅 Seedance 家族**：作为 `watermark` 发送（模型侧水印），默认 False；其它家族不转发 |
 | `output_format` | 选择 | 容器格式，作为 `output_format` 发送（**仅 Seedance 2.5**）：`auto`（默认，不发送）/ `mp4` / `mov`；在 2.0 系列上设置会报错 |
 | `reference_video` | 字符串 | 参考视频：`https://…` 直链或 `asset://素材ID`（**视频不支持 data URI**）。2.0/2.5 作为 `role=reference_video` 的多模态参考；仅接 1 段且模型为 2.5 时自动走 `videoExtend`（`ratio` 强制 `adaptive`） |
 | `reference_audio` | 字符串 | 参考音频：`https://…`、`asset://素材ID`，或 `data:audio/mpeg;base64,…`，作为 `role=reference_audio` 发送 |
